@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">splbDemo</string>
+    <string name="open_socket">OpenSocket</string>
+    <string name="close_socket">closeSocket</string>
+    <string name="register">registerApp</string>
+    <string name="unregister">unregisterApp</string>
+    <string name="get_available_net_interface">getAvailableNetInterface</string>
+    <string name="get_mobile_signal_level">getMobileSignalLevel</string>
+    <string name="get_wifi_signal_level">getWiFiSignalLevel</string>
+    <string name="bind_to_mobile_interface">bindToMobileInterface</string>
+    <string name="bind_to_wifi_interface">bindToWiFiInterface</string>
+    <string name="get_traffic_state">getTrafficStats</string>
+    <string name="test_website">testWebSite</string>
+    <string name="recv_msg">receive message:</string>
+    <!--<string name=""></string>
+    <string name=""></string>
+    <string name=""></string>
+    <string name=""></string>-->
+</resources>
