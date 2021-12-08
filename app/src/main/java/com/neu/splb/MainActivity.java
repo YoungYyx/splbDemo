@@ -14,7 +14,16 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
 
+
+import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.DatagramSocket;
+import java.net.DatagramSocketImpl;
+import java.net.SocketException;
 
 import static com.neu.splb.ApiTest.MOBILE_NAME;
 import static com.neu.splb.ApiTest.MSG_RECEIVE;
@@ -74,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
             case R.id.test_website:
                 testWebSite();
                 break;
+            case R.id.test_udp_socket:
+                connetctServerWithWiFi();
             default:
                 break;
         }
@@ -124,6 +135,16 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "bindToWiFiInterface ret = " + ret);
     }
 
+    private void bindSocketToMobileInterface(int fd) {
+        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,MOBILE_NAME);
+        Log.d(TAG, "bindSocketToMobileInterface ret = " + ret);
+    }
+
+    private void bindSocketToWiFiInterface(int fd) {
+        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,WIFI_NAME);
+        Log.d(TAG, "bindSocketToWiFiInterface ret = " + ret);
+    }
+
     private void getTrafficStats() {
         int uid = getUid();
         if (uid == Integer.MAX_VALUE) {
@@ -134,6 +155,39 @@ public class MainActivity extends AppCompatActivity {
         text.setText(ret);
     }
 
+    private int getUnixFd(DatagramSocket socket){
+        try {
+            Field $impl = socket.getClass().getDeclaredField("impl");
+            $impl.setAccessible(true);
+            DatagramSocketImpl socketImpl = (DatagramSocketImpl) $impl.get(socket);
+            Method $getFileDescriptor = DatagramSocketImpl.class.getDeclaredMethod("getFileDescriptor");
+            $getFileDescriptor.setAccessible(true);
+            FileDescriptor fd = (FileDescriptor) $getFileDescriptor.invoke(socketImpl);
+            Field $fd = fd.getClass().getDeclaredField("fd");
+            $fd.setAccessible(true);
+            return (Integer) $fd.get(fd);
+        } catch (NoSuchFieldException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    private void connetctServerWithWiFi(){
+        DatagramSocket socket;
+        try {
+            socket = new DatagramSocket(10000);
+            int fd = getUnixFd(socket);
+            if(fd != -1){
+                bindSocketToWiFiInterface(fd);
+            }else{
+                Log.w(TAG, "socket fd error.it should > 0");
+            }
+
+        }catch (SocketException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
     private void testWebSite() {
         WebView webView = findViewById(R.id.webview);
         webView.setWebViewClient(new WebViewClient() {

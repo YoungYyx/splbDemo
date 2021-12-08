@@ -347,6 +347,37 @@ public class ApiTest {
         return true;
     }
 
+    public boolean bindSocketToNetInterface(int fd,String netName){
+        try {
+            if (clientSocket == null) {
+                Log.w(TAG, "bindSocketToNetInterface: please opensocket first");
+                return false;
+            }
+            byte[] hdrData;
+            MsgHeader msgHeader = new MsgHeader();
+            if (netName.equals(WIFI_NAME)) {
+                final String bindSocketToWiFiInterfaceMessage = "{\"apiId\":3001,\"fd\":"+fd+",\"netInterface\":\"wlan00\"}";
+                hdrData = msgHeader.getNewHeaderMsg(bindSocketToWiFiInterfaceMessage.length());
+                Log.d(TAG, "bindSocketToNetInterface wifi hdrData = " + Arrays.toString(hdrData));
+                byte[] msgByte = bindSocketToWiFiInterfaceMessage.getBytes();
+                byte[] newByte = concatByte(hdrData, msgByte);
+                writeSocket(newByte);
+                Log.d(TAG, "send msg: " + bindSocketToWiFiInterfaceMessage);
+            } else if (netName.equals(MOBILE_NAME)) {
+                final String bindSocketToMobileInterfaceMessage = "{\"apiId\":3001,\"fd\":"+fd+",\"netInterface\":\"rmnet00\"}";
+                hdrData = msgHeader.getNewHeaderMsg(bindSocketToMobileInterfaceMessage.length());
+                byte[] msgByte = bindSocketToMobileInterfaceMessage.getBytes();
+                byte[] newByte = concatByte(hdrData, msgByte);
+                writeSocket(newByte);
+                Log.d(TAG, "send msg: " + bindSocketToMobileInterfaceMessage);
+            }
+            Log.d(TAG, "send bindSocketToNetIfMsg OK");
+        } catch (IOException e) {
+            Log.d(TAG, e.getMessage());
+            return false;
+        }
+        return true;
+    }
     /*
      * 获取网卡速率
      * */
