@@ -137,6 +137,15 @@
         android:textAllCaps="false"
         app:layout_constraintTop_toBottomOf="@id/get_traffic_state" />
 
+
+    <Button
+        android:id="@+id/test_udp_socket"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="handleClick"
+        android:text="@string/test_udp_socket"
+        android:textAllCaps="false"
+        app:layout_constraintTop_toBottomOf="@id/test_website" />
     <TextView
         android:id="@+id/recv_msg"
         android:layout_width="match_parent"
@@ -150,5 +159,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toBottomOf="@id/recv_msg">
     </WebView>
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

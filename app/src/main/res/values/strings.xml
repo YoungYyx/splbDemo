@@ -11,6 +11,7 @@
     <string name="bind_to_wifi_interface">bindToWiFiInterface</string>
     <string name="get_traffic_state">getTrafficStats</string>
     <string name="test_website">testWebSite</string>
+    <string name="test_udp_socket">testUdpSocket</string>
     <string name="recv_msg">receive message:</string>
     <!--<string name=""></string>
     <string name=""></string>
