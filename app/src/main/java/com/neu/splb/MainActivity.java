@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PKG_NAME = "com.huawei.demo";
 
     private static MyHandler handler;
-
+    private DatagramSocket socket;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -163,21 +163,23 @@ public class MainActivity extends AppCompatActivity {
             Method $getFileDescriptor = DatagramSocketImpl.class.getDeclaredMethod("getFileDescriptor");
             $getFileDescriptor.setAccessible(true);
             FileDescriptor fd = (FileDescriptor) $getFileDescriptor.invoke(socketImpl);
-            Field $fd = fd.getClass().getDeclaredField("fd");
-            $fd.setAccessible(true);
-            return (Integer) $fd.get(fd);
+            Field $descriptor = fd.getClass().getDeclaredField("descriptor");
+            $descriptor.setAccessible(true);
+            return (Integer) $descriptor.get(fd);
         } catch (NoSuchFieldException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             e.printStackTrace();
         }
         return -1;
     }
     private void connetctServerWithWiFi(){
-        DatagramSocket socket;
+        Log.d(TAG, "bindSocketToWiFiInterface ret = ");
         try {
-            socket = new DatagramSocket(10000);
+            if(socket == null){
+                socket = new DatagramSocket(16667);
+            }
             int fd = getUnixFd(socket);
             if(fd != -1){
-                bindSocketToWiFiInterface(fd);
+                bindSocketToMobileInterface(fd);
             }else{
                 Log.w(TAG, "socket fd error.it should > 0");
             }
@@ -200,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
         });
         // 设置js可以直接打开窗口，如window.open()，默认为false
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        // 是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞
+        // 是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞struct sockaddr_in* get_aviliable_dst_addrs(struct sockaddr_in *dst_addr)
         webView.getSettings().setJavaScriptEnabled(true);
         //是否可以缩放，默认true
         webView.getSettings().setSupportZoom(true);
@@ -252,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
             MainActivity activity = mActivity.get();
             switch (msg.what) {
                 case MSG_RECEIVE:
-                    Log.d(TAG, "receive");
+                    Log.d(TAG, "receive--------------------------");
                     if (msg.obj instanceof String) {
                         String text = (String) msg.obj;
                         activity.setReceiveeMessage(text);
