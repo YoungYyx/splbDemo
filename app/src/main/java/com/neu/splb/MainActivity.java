@@ -35,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String PKG_NAME = "com.huawei.demo";
 
     private static MyHandler handler;
-    private DatagramSocket socket;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 testWebSite();
                 break;
             case R.id.test_udp_socket:
-                connetctServerWithWiFi();
+                testBindWithLTE();
             default:
                 break;
         }
@@ -155,38 +154,18 @@ public class MainActivity extends AppCompatActivity {
         text.setText(ret);
     }
 
-    private int getUnixFd(DatagramSocket socket){
+
+    private void testBindWithLTE(){
+        Log.d(TAG, "bindSocketToLTEInterface");
         try {
-            Field $impl = socket.getClass().getDeclaredField("impl");
-            $impl.setAccessible(true);
-            DatagramSocketImpl socketImpl = (DatagramSocketImpl) $impl.get(socket);
-            Method $getFileDescriptor = DatagramSocketImpl.class.getDeclaredMethod("getFileDescriptor");
-            $getFileDescriptor.setAccessible(true);
-            FileDescriptor fd = (FileDescriptor) $getFileDescriptor.invoke(socketImpl);
-            Field $descriptor = fd.getClass().getDeclaredField("descriptor");
-            $descriptor.setAccessible(true);
-            return (Integer) $descriptor.get(fd);
-        } catch (NoSuchFieldException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
-    private void connetctServerWithWiFi(){
-        Log.d(TAG, "bindSocketToWiFiInterface ret = ");
-        try {
-            if(socket == null){
-                socket = new DatagramSocket(16667);
-            }
-            int fd = getUnixFd(socket);
+            DatagramSocket lteSocket = SocketService.getInstance().getUdpSocket();
+            int fd = SocketService.getInstance().getSocketFd(lteSocket);
             if(fd != -1){
                 bindSocketToMobileInterface(fd);
             }else{
                 Log.w(TAG, "socket fd error.it should > 0");
             }
-
         }catch (SocketException e){
-            e.printStackTrace();
-        }catch (IOException e){
             e.printStackTrace();
         }
     }

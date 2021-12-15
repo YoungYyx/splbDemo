@@ -40,6 +40,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    //单元测试加的
+    /*
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }*/
 }
 
 dependencies {
