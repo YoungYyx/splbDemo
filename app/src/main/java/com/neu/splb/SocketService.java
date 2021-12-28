@@ -181,7 +181,6 @@ public class SocketService {
             @Override
             public void run() {
                 SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,1,0);
-
                 InetAddress address = null;
                 try {
                     address = InetAddress.getByName(IP);
