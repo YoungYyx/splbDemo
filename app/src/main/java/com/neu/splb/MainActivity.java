@@ -3,6 +3,7 @@ package com.neu.splb;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -34,12 +35,16 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PKG_NAME = "com.huawei.demo";
 
+    private static Context context;
+
     private static MyHandler handler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initHandler();
+        context = getApplicationContext();
     }
 
     private void initHandler() {
@@ -83,7 +88,8 @@ public class MainActivity extends AppCompatActivity {
                 testWebSite();
                 break;
             case R.id.test_udp_socket:
-                testBindWithLTE();
+                //testBindWithLTE();
+                testNetwork();
             default:
                 break;
         }
@@ -169,6 +175,10 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+    private void testNetwork(){
+        AndroidAPITest.getInstance().testNetwork();
+    }
     private void testWebSite() {
         WebView webView = findViewById(R.id.webview);
         webView.setWebViewClient(new WebViewClient() {
@@ -248,5 +258,9 @@ public class MainActivity extends AppCompatActivity {
 
     public static MyHandler getMyHandler() {
         return handler;
+    }
+
+    public static Context getContext(){
+        return context;
     }
 }
