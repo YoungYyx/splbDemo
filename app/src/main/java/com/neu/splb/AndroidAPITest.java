@@ -25,6 +25,7 @@ public class AndroidAPITest {
         }
         return instance;
     }
+    //
     public void testNetwork(){
         Context context = MainActivity.getContext();
         ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
