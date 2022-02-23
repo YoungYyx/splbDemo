@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.net.DatagramSocket;
 import java.net.DatagramSocketImpl;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import static com.neu.splb.ApiTest.MOBILE_NAME;
 import static com.neu.splb.ApiTest.MSG_RECEIVE;
@@ -75,12 +76,12 @@ public class MainActivity extends AppCompatActivity {
             case R.id.get_wifi_signal_level:
                 getWiFiSignalLevel();
                 break;
-            case R.id.bind_to_mobile_interface:
-                bindToMobileInterface();
-                break;
-            case R.id.bind_to_wifi_interface:
-                bindToWiFiInterface();
-                break;
+//            case R.id.bind_to_mobile_interface:
+//                bindToMobileInterface();
+//                break;
+//            case R.id.bind_to_wifi_interface:
+//                bindToWiFiInterface();
+//                break;
             case R.id.get_traffic_state:
                 getTrafficStats();
                 break;
@@ -88,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
                 testWebSite();
                 break;
             case R.id.test_udp_socket:
-                //testBindWithLTE();
                 testNetwork();
             default:
                 break;
@@ -130,25 +130,25 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "getWiFiSignalLevel ret " + ret);
     }
 
-    private void bindToMobileInterface() {
-        boolean ret = ApiTest.getInstance().bindToNetInterface(MOBILE_NAME);
-        Log.d(TAG, "bindToMobileInterface ret = " + ret);
-    }
+//    private void bindToMobileInterface() {
+//        boolean ret = ApiTest.getInstance().bindToNetInterface(MOBILE_NAME);
+//        Log.d(TAG, "bindToMobileInterface ret = " + ret);
+//    }
+//
+//    private void bindToWiFiInterface() {
+//        boolean ret = ApiTest.getInstance().bindToNetInterface(WIFI_NAME);
+//        Log.d(TAG, "bindToWiFiInterface ret = " + ret);
+//    }
 
-    private void bindToWiFiInterface() {
-        boolean ret = ApiTest.getInstance().bindToNetInterface(WIFI_NAME);
-        Log.d(TAG, "bindToWiFiInterface ret = " + ret);
-    }
-
-    private void bindSocketToMobileInterface(int fd) {
-        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,MOBILE_NAME);
-        Log.d(TAG, "bindSocketToMobileInterface ret = " + ret);
-    }
-
-    private void bindSocketToWiFiInterface(int fd) {
-        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,WIFI_NAME);
-        Log.d(TAG, "bindSocketToWiFiInterface ret = " + ret);
-    }
+//    private void bindSocketToMobileInterface(int fd) {
+//        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,MOBILE_NAME);
+//        Log.d(TAG, "bindSocketToMobileInterface ret = " + ret);
+//    }
+//
+//    private void bindSocketToWiFiInterface(int fd) {
+//        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,WIFI_NAME);
+//        Log.d(TAG, "bindSocketToWiFiInterface ret = " + ret);
+//    }
 
     private void getTrafficStats() {
         int uid = getUid();
@@ -161,23 +161,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void testBindWithLTE(){
-        Log.d(TAG, "bindSocketToLTEInterface");
-        try {
-            DatagramSocket lteSocket = SocketService.getInstance().getUdpSocket();
-            int fd = SocketService.getInstance().getSocketFd(lteSocket);
-            if(fd != -1){
-                bindSocketToMobileInterface(fd);
-            }else{
-                Log.w(TAG, "socket fd error.it should > 0");
-            }
-        }catch (SocketException e){
-            e.printStackTrace();
-        }
-    }
+//    private void testBindWithLTE(){
+//        Log.d(TAG, "bindSocketToLTEInterface");
+//        try {
+//            DatagramSocket lteSocket = SocketService.getInstance().getUdpSocket();
+//            int fd = SocketService.getInstance().getSocketFd(lteSocket);
+//            if(fd != -1){
+//                bindSocketToMobileInterface(fd);
+//            }else{
+//                Log.w(TAG, "socket fd error.it should > 0");
+//            }
+//        }catch (SocketException e){
+//            e.printStackTrace();
+//        }
+//    }
 
     private void testNetwork(){
-        AndroidAPITest.getInstance().testNetwork();
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
     }
     private void testWebSite() {
         WebView webView = findViewById(R.id.webview);

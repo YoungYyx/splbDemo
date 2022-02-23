@@ -3,14 +3,9 @@ package com.neu.splb;
 import static com.neu.splb.ApiTest.MOBILE_NAME;
 import static java.lang.Thread.sleep;
 import android.util.Log;
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.DatagramSocketImpl;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -20,7 +15,7 @@ enum PacketType{
     DATAPKG((byte)0),
     PROBEPKG((byte)1);
     public byte t;
-    
+
     PacketType(byte t) {
         this.t= t;
     }
@@ -75,44 +70,13 @@ public class SocketService {
         return socket;
     }
 
-    public int getSocketFd(DatagramSocket socket){
-        if(socket == null) return -1;
-        try {
-            Field $impl = socket.getClass().getDeclaredField("impl");
-            $impl.setAccessible(true);
-            DatagramSocketImpl socketImpl = (DatagramSocketImpl) $impl.get(socket);
-            Method $getFileDescriptor = DatagramSocketImpl.class.getDeclaredMethod("getFileDescriptor");
-            $getFileDescriptor.setAccessible(true);
-            FileDescriptor fd = (FileDescriptor) $getFileDescriptor.invoke(socketImpl);
-            Field $descriptor = fd.getClass().getDeclaredField("fd");
-            $descriptor.setAccessible(true);
-            return (Integer) $descriptor.get(fd);
-        } catch (NoSuchFieldException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
+
 
     public void testTwoSocketSender(String IP,int dstPort){
-        SocketService socketService = SocketService.getInstance();
-        ApiTest apiService = ApiTest.getInstance();
-        DatagramSocket lteSocket = null,wifiSocket = null;
-        try {
-            lteSocket = socketService.getUdpSocket();
-            wifiSocket = socketService.getUdpSocket();
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-        int ltefd = socketService.getSocketFd(lteSocket);
-        int wififd = socketService.getSocketFd(wifiSocket);
-        if(ltefd > 0 && wififd > 0){
-            Log.d(TAG,"get fd success");
-            boolean lteret = apiService.bindSocketToNetInterface(ltefd,MOBILE_NAME);
-            boolean wifiret = apiService.getInstance().bindSocketToNetInterface(wififd,MOBILE_NAME);
-            Log.d(TAG,"get fd success");
-        }else{
-            Log.e(TAG,"error!, ltefd or wifild should > 0!");
-        }
+        AndroidAPITest apiInstance = AndroidAPITest.getInstance();
+        DatagramSocket lteSocket = apiInstance.getCellularSocket();
+        DatagramSocket wifiSocket = apiInstance.getWifiSocket();
+
         try {
             InetAddress address = InetAddress.getByName(IP);
             String str = "hello";
@@ -133,29 +97,9 @@ public class SocketService {
     }
 
     public void testSimpleSplb(String IP,int dstPort) throws UnknownHostException {
-        SocketService socketService = SocketService.getInstance();
-        ApiTest apiService = ApiTest.getInstance();
-        DatagramSocket lteSocket = null,wifiSocket = null;
-        try {
-            lteSocket = socketService.getUdpSocket();
-            wifiSocket = socketService.getUdpSocket();
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-
-        int ltefd = socketService.getSocketFd(lteSocket);
-        int wififd = socketService.getSocketFd(wifiSocket);
-        if(ltefd > 0 && wififd > 0){
-            Log.d(TAG,"get fd success");
-            boolean lteret = apiService.bindSocketToNetInterface(ltefd,MOBILE_NAME);
-            boolean wifiret = apiService.getInstance().bindSocketToNetInterface(wififd,MOBILE_NAME);
-            Log.d(TAG,"get fd success");
-        }else{
-            Log.e(TAG,"error!, ltefd or wifild should > 0!");
-        }
-
-        final DatagramSocket finalLteSocket = lteSocket;
-        final DatagramSocket finalWifiSocket = wifiSocket;
+        AndroidAPITest apiInstance = AndroidAPITest.getInstance();
+        final DatagramSocket lteSocket = apiInstance.getCellularSocket();
+        final DatagramSocket wifiSocket = apiInstance.getWifiSocket();
         final InetAddress address = InetAddress.getByName(IP);
 
         Thread lteProbeThread = new Thread(new Runnable() { //启动线程在lte网卡发送探测包
@@ -167,7 +111,7 @@ public class SocketService {
                     while(!Thread.currentThread().isInterrupted()){
                         byte[] probe = probeHdr.toByteArray();
                         DatagramPacket packet = new DatagramPacket(probe,probe.length,address,dstPort);
-                        finalLteSocket.send(packet);
+                        lteSocket.send(packet);
                         sleep(1);
                         probeHdr.probeSeq++;
                     }
@@ -187,7 +131,7 @@ public class SocketService {
                     while(!Thread.currentThread().isInterrupted()){
                         byte[] probe = probeHdr.toByteArray();
                         DatagramPacket packet = new DatagramPacket(probe,probe.length,address,dstPort);
-                        finalWifiSocket.send(packet);
+                        wifiSocket.send(packet);
                         sleep(1);
                         probeHdr.probeSeq++;
                     }
@@ -208,7 +152,7 @@ public class SocketService {
                     while(Thread.currentThread().isInterrupted()){
                         byte[] data = new byte[1024];
                         DatagramPacket probePacket = new DatagramPacket(data,data.length);
-                        finalLteSocket.receive(probePacket);
+                        lteSocket.receive(probePacket);
                         InetAddress srcIP = probePacket.getAddress();
                         int srcPort = probePacket.getPort();
                         byte[] msg = probePacket.getData();
@@ -216,7 +160,7 @@ public class SocketService {
                         hdr.type = PacketType.DATAPKG;//改为数据包类型
                         byte[] sendData =  byteMerger(hdr.toByteArray(),realData);
                         DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,srcIP,srcPort);
-                        finalLteSocket.send(sendPacket);
+                        lteSocket.send(sendPacket);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -235,7 +179,7 @@ public class SocketService {
                     while(Thread.currentThread().isInterrupted()){
                         byte[] data = new byte[1024];
                         DatagramPacket probePacket = new DatagramPacket(data,data.length);
-                        finalWifiSocket.receive(probePacket);
+                        wifiSocket.receive(probePacket);
                         InetAddress srcIP = probePacket.getAddress();
                         int srcPort = probePacket.getPort();
                         byte[] msg = probePacket.getData();
@@ -243,7 +187,7 @@ public class SocketService {
                         hdr.type = PacketType.DATAPKG;//改为数据包类型
                         byte[] sendData =  byteMerger(hdr.toByteArray(),realData);
                         DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,srcIP,srcPort);
-                        finalWifiSocket.send(sendPacket);
+                        wifiSocket.send(sendPacket);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
