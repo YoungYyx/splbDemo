@@ -55,80 +55,104 @@ public class MainActivity extends AppCompatActivity {
     public void handleClick(View view) {
         int id = view.getId();
         switch (id) {
-            case R.id.open_socket:
-                openSocket();
-                break;
-            case R.id.close_socket:
-                closeSocket();
-                break;
-            case R.id.register:
-                register();
-                break;
-            case R.id.unregister:
-                unregister();
-                break;
-            case R.id.get_available_net_interface:
-                getAvailableNetInterface();
-                break;
-            case R.id.get_mobile_signal_level:
-                getMobileSignalLevel();
-                break;
-            case R.id.get_wifi_signal_level:
-                getWiFiSignalLevel();
-                break;
-//            case R.id.bind_to_mobile_interface:
-//                bindToMobileInterface();
+//            case R.id.open_socket:
+//                openSocket();
 //                break;
-//            case R.id.bind_to_wifi_interface:
-//                bindToWiFiInterface();
+//            case R.id.close_socket:
+//                closeSocket();
 //                break;
-            case R.id.get_traffic_state:
-                getTrafficStats();
+//            case R.id.register:
+//                register();
+//                break;
+//            case R.id.unregister:
+//                unregister();
+//                break;
+//            case R.id.get_available_net_interface:
+//                getAvailableNetInterface();
+//                break;
+//            case R.id.get_mobile_signal_level:
+//                getMobileSignalLevel();
+//                break;
+//            case R.id.get_wifi_signal_level:
+//                getWiFiSignalLevel();
+//                break;
+////            case R.id.bind_to_mobile_interface:
+////                bindToMobileInterface();
+////                break;
+////            case R.id.bind_to_wifi_interface:
+////                bindToWiFiInterface();
+////                break;
+//            case R.id.get_traffic_state:
+//                getTrafficStats();
+//                break;
+//            case R.id.test_website:
+//                testWebSite();
+//                break;
+//            case R.id.test_udp_socket:
+//                testNetwork();
+            case R.id.test_splb_mode1:
+                testSplbMode1();
                 break;
-            case R.id.test_website:
-                testWebSite();
+            case R.id.test_splb_mode2:
+                testSplbMode2();
                 break;
-            case R.id.test_udp_socket:
-                testNetwork();
+            case R.id.test_splb_mode3:
+                testSplbMode3();
+                break;
+            case R.id.test_splb_mode4:
+                testSplbMode4();
+                break;
+            case R.id.stop_test_splb_mode1:
+                stopTestSplbMode1();
+                break;
+            case R.id.stop_test_splb_mode2:
+                stopTestSplbMode2();
+                break;
+            case R.id.stop_test_splb_mode3:
+                stopTestSplbMode3();
+                break;
+            case R.id.stop_test_splb_mode4:
+                stopTestSplbMode4();
+                break;
             default:
                 break;
         }
     }
 
-    private void openSocket() {
-        boolean ret = ApiTest.getInstance().openLocalSocket();
-        Log.d(TAG, "openSocket ret = " + ret);
-    }
-
-    private void closeSocket() {
-        boolean ret = ApiTest.getInstance().closeLocalSocket();
-        Log.d(TAG, "closeSocket ret = " + ret);
-    }
-
-    private void register() {
-        boolean ret = ApiTest.getInstance().registerApp();
-        Log.d(TAG, "register ret = " + ret);
-    }
-
-    private void unregister() {
-        boolean ret = ApiTest.getInstance().unRegisterApp();
-        Log.d(TAG, "unregister ret = " + ret);
-    }
-
-    private void getAvailableNetInterface() {
-        boolean ret = ApiTest.getInstance().getAvailableNetInterface();
-        Log.d(TAG, "getAvailableNetInterface ret = " + ret);
-    }
-
-    private void getMobileSignalLevel() {
-        boolean ret = ApiTest.getInstance().getSignalLevel(MOBILE_NAME);
-        Log.d(TAG, "getMobileSignalLevel ret = " + ret);
-    }
-
-    private void getWiFiSignalLevel() {
-        boolean ret = ApiTest.getInstance().getSignalLevel(WIFI_NAME);
-        Log.d(TAG, "getWiFiSignalLevel ret " + ret);
-    }
+//    private void openSocket() {
+//        boolean ret = ApiTest.getInstance().openLocalSocket();
+//        Log.d(TAG, "openSocket ret = " + ret);
+//    }
+//
+//    private void closeSocket() {
+//        boolean ret = ApiTest.getInstance().closeLocalSocket();
+//        Log.d(TAG, "closeSocket ret = " + ret);
+//    }
+//
+//    private void register() {
+//        boolean ret = ApiTest.getInstance().registerApp();
+//        Log.d(TAG, "register ret = " + ret);
+//    }
+//
+//    private void unregister() {
+//        boolean ret = ApiTest.getInstance().unRegisterApp();
+//        Log.d(TAG, "unregister ret = " + ret);
+//    }
+//
+//    private void getAvailableNetInterface() {
+//        boolean ret = ApiTest.getInstance().getAvailableNetInterface();
+//        Log.d(TAG, "getAvailableNetInterface ret = " + ret);
+//    }
+//
+//    private void getMobileSignalLevel() {
+//        boolean ret = ApiTest.getInstance().getSignalLevel(MOBILE_NAME);
+//        Log.d(TAG, "getMobileSignalLevel ret = " + ret);
+//    }
+//
+//    private void getWiFiSignalLevel() {
+//        boolean ret = ApiTest.getInstance().getSignalLevel(WIFI_NAME);
+//        Log.d(TAG, "getWiFiSignalLevel ret " + ret);
+//    }
 
 //    private void bindToMobileInterface() {
 //        boolean ret = ApiTest.getInstance().bindToNetInterface(MOBILE_NAME);
@@ -150,15 +174,15 @@ public class MainActivity extends AppCompatActivity {
 //        Log.d(TAG, "bindSocketToWiFiInterface ret = " + ret);
 //    }
 
-    private void getTrafficStats() {
-        int uid = getUid();
-        if (uid == Integer.MAX_VALUE) {
-            return;
-        }
-        String ret = ApiTest.getInstance().getNetworkSpeed(uid);
-        TextView text = findViewById(R.id.recv_msg);
-        text.setText(ret);
-    }
+//    private void getTrafficStats() {
+//        int uid = getUid();
+//        if (uid == Integer.MAX_VALUE) {
+//            return;
+//        }
+//        String ret = ApiTest.getInstance().getNetworkSpeed(uid);
+//        TextView text = findViewById(R.id.recv_msg);
+//        text.setText(ret);
+//    }
 
 
 //    private void testBindWithLTE(){
@@ -177,6 +201,70 @@ public class MainActivity extends AppCompatActivity {
 //    }
 
     private void testNetwork(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void testSplbMode1(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void testSplbMode2(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void testSplbMode3(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void testSplbMode4(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void stopTestSplbMode1(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void stopTestSplbMode2(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void stopTestSplbMode3(){
+        try {
+            //现在用的假的IP
+            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+    private void stopTestSplbMode4(){
         try {
             //现在用的假的IP
             SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);

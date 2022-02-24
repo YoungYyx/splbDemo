@@ -53,6 +53,11 @@ public class SocketService {
     private static final String TAG = "Socket Service";
     public static int basePort = 16666;
     public static SocketService instance = null;
+
+    private Thread lteProbeThread = null;
+    private Thread wifiProbeThread = null;
+    private Thread lteListenAndSend = null;
+    private Thread wifiListenAndSend = null;
     //获取类实例
     public static SocketService getInstance(){
         if (instance == null) {
@@ -102,7 +107,7 @@ public class SocketService {
         final DatagramSocket wifiSocket = apiInstance.getWifiSocket();
         final InetAddress address = InetAddress.getByName(IP);
 
-        Thread lteProbeThread = new Thread(new Runnable() { //启动线程在lte网卡发送探测包
+        lteProbeThread = new Thread(new Runnable() { //启动线程在lte网卡发送探测包
             @Override
             public void run() {
                 SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,0,0);
@@ -120,27 +125,7 @@ public class SocketService {
                 }
             }
         });
-
-        Thread wifiProbeThread = new Thread(new Runnable() { //启动线程在wifi网卡发送探测包
-            @Override
-            public void run() {
-                SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,1,0);
-                InetAddress address = null;
-                try {
-                    address = InetAddress.getByName(IP);
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] probe = probeHdr.toByteArray();
-                        DatagramPacket packet = new DatagramPacket(probe,probe.length,address,dstPort);
-                        wifiSocket.send(packet);
-                        sleep(1);
-                        probeHdr.probeSeq++;
-                    }
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        Thread lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡监听探测包
+        lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡监听探测包
             @Override
             public void run() {
                 byte[] realData = new byte[530];
@@ -167,7 +152,27 @@ public class SocketService {
                 }
             }
         });
-        Thread wifiListenAndSend = new Thread(new Runnable() { //启动线程在wifi网卡监听探测包
+        wifiProbeThread = new Thread(new Runnable() { //启动线程在wifi网卡发送探测包
+            @Override
+            public void run() {
+                SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,1,0);
+                InetAddress address = null;
+                try {
+                    address = InetAddress.getByName(IP);
+                    while(!Thread.currentThread().isInterrupted()){
+                        byte[] probe = probeHdr.toByteArray();
+                        DatagramPacket packet = new DatagramPacket(probe,probe.length,address,dstPort);
+                        wifiSocket.send(packet);
+                        sleep(1);
+                        probeHdr.probeSeq++;
+                    }
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        wifiListenAndSend = new Thread(new Runnable() { //启动线程在wifi网卡监听探测包
             @Override
             public void run() {
                 byte[] realData = new byte[530];
@@ -194,7 +199,22 @@ public class SocketService {
                 }
             }
         });
-
+        lteProbeThread.start();
+        wifiProbeThread.start();
+        lteListenAndSend.start();
+        wifiListenAndSend.start();
+    }
+    public void stopTest(){
+        if (lteProbeThread != null){
+            lteProbeThread.interrupt();
+            wifiProbeThread.interrupt();
+            lteListenAndSend.interrupt();
+            wifiListenAndSend.interrupt();
+            lteProbeThread = null;
+            wifiProbeThread = null;
+            lteListenAndSend = null;
+            wifiListenAndSend = null;
+        }
     }
     public static byte[] byteMerger(byte[] bt1, byte[] bt2){
         byte[] bt3 = new byte[bt1.length+bt2.length];

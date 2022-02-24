@@ -14,11 +14,11 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <Button
-            android:id="@+id/open_socket"
+            android:id="@+id/test_splb_mode1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/open_socket"
+            android:text="@string/test_splb_mode1"
             android:textAllCaps="false"
             app:layout_constraintEnd_toStartOf="@id/guideline"
             app:layout_constraintStart_toStartOf="@id/line"
@@ -32,11 +32,11 @@
             app:layout_constraintGuide_percent="0.5" />
 
         <Button
-            android:id="@+id/close_socket"
+            android:id="@+id/stop_test_splb_mode1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/close_socket"
+            android:text="@string/stop_test_splb_mode1"
             android:textAllCaps="false"
             app:layout_constraintEnd_toEndOf="@id/line"
             app:layout_constraintHorizontal_bias="0.5"
@@ -44,114 +44,171 @@
             app:layout_constraintTop_toTopOf="@id/line" />
 
         <Button
-            android:id="@+id/register"
+            android:id="@+id/test_splb_mode2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/register"
+            android:text="@string/test_splb_mode2"
             android:textAllCaps="false"
             app:layout_constraintEnd_toStartOf="@id/guideline"
             app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/open_socket" />
+            app:layout_constraintTop_toBottomOf="@id/test_splb_mode1" />
 
         <Button
-            android:id="@+id/unregister"
+            android:id="@+id/stop_test_splb_mode2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/unregister"
+            android:text="@string/stop_test_splb_mode2"
             android:textAllCaps="false"
             app:layout_constraintEnd_toEndOf="@id/line"
             app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/close_socket" />
-
+            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode1" />
         <Button
-            android:id="@+id/get_mobile_signal_level"
+            android:id="@+id/test_splb_mode3"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/get_mobile_signal_level"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/guideline"
-            app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/register" />
-
-        <Button
-            android:id="@+id/get_wifi_signal_level"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/get_wifi_signal_level"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/line"
-            app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/unregister" />
-
-        <Button
-            android:id="@+id/bind_to_mobile_interface"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/bind_to_mobile_interface"
+            android:text="@string/test_splb_mode3"
             android:textAllCaps="false"
             app:layout_constraintEnd_toStartOf="@id/guideline"
             app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/get_mobile_signal_level" />
+            app:layout_constraintTop_toBottomOf="@id/test_splb_mode2" />
 
         <Button
-            android:id="@+id/bind_to_wifi_interface"
+            android:id="@+id/stop_test_splb_mode3"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/bind_to_wifi_interface"
+            android:text="@string/stop_test_splb_mode3"
             android:textAllCaps="false"
             app:layout_constraintEnd_toEndOf="@id/line"
             app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/get_wifi_signal_level" />
+            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode2" />
+        <Button
+            android:id="@+id/test_splb_mode4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/test_splb_mode4"
+            android:textAllCaps="false"
+            app:layout_constraintEnd_toStartOf="@id/guideline"
+            app:layout_constraintStart_toStartOf="@id/line"
+            app:layout_constraintTop_toBottomOf="@id/test_splb_mode3" />
+
+        <Button
+            android:id="@+id/stop_test_splb_mode4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/stop_test_splb_mode4"
+            android:textAllCaps="false"
+            app:layout_constraintEnd_toEndOf="@id/line"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode3" />
+
+<!--        <Button-->
+<!--            android:id="@+id/get_mobile_signal_level"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:onClick="handleClick"-->
+<!--            android:text="@string/get_mobile_signal_level"-->
+<!--            android:textAllCaps="false"-->
+<!--            app:layout_constraintEnd_toEndOf="@id/guideline"-->
+<!--            app:layout_constraintStart_toStartOf="@id/line"-->
+<!--            app:layout_constraintTop_toBottomOf="@id/register" />-->
+
+<!--        <Button-->
+<!--            android:id="@+id/get_wifi_signal_level"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:onClick="handleClick"-->
+<!--            android:text="@string/get_wifi_signal_level"-->
+<!--            android:textAllCaps="false"-->
+<!--            app:layout_constraintEnd_toEndOf="@id/line"-->
+<!--            app:layout_constraintStart_toEndOf="@id/guideline"-->
+<!--            app:layout_constraintTop_toBottomOf="@id/unregister" />-->
+
+<!--        <Button-->
+<!--            android:id="@+id/bind_to_mobile_interface"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:onClick="handleClick"-->
+<!--            android:text="@string/bind_to_mobile_interface"-->
+<!--            android:textAllCaps="false"-->
+<!--            app:layout_constraintEnd_toStartOf="@id/guideline"-->
+<!--            app:layout_constraintStart_toStartOf="@id/line"-->
+<!--            app:layout_constraintTop_toBottomOf="@id/get_mobile_signal_level" />-->
+
+<!--        <Button-->
+<!--            android:id="@+id/bind_to_wifi_interface"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:onClick="handleClick"-->
+<!--            android:text="@string/bind_to_wifi_interface"-->
+<!--            android:textAllCaps="false"-->
+<!--            app:layout_constraintEnd_toEndOf="@id/line"-->
+<!--            app:layout_constraintStart_toEndOf="@id/guideline"-->
+<!--            app:layout_constraintTop_toBottomOf="@id/get_wifi_signal_level" />-->
     </androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/test_ecmp_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/test_ecmp_mode"
+            android:textAllCaps="false"
+            app:layout_constraintTop_toBottomOf="@id/line" />
+        <Button
+            android:id="@+id/stop_test_ecmp_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/stop_test_ecmp_mode"
+            android:textAllCaps="false"
+            app:layout_constraintTop_toBottomOf="@id/test_ecmp_mode" />
+<!--    <Button-->
+<!--        android:id="@+id/get_available_net_interface"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="handleClick"-->
+<!--        android:text="@string/get_available_net_interface"-->
+<!--        android:textAllCaps="false"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/line" />-->
 
-    <Button
-        android:id="@+id/get_available_net_interface"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="handleClick"
-        android:text="@string/get_available_net_interface"
-        android:textAllCaps="false"
-        app:layout_constraintTop_toBottomOf="@id/line" />
+<!--    <Button-->
+<!--        android:id="@+id/get_traffic_state"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="handleClick"-->
+<!--        android:text="@string/get_traffic_state"-->
+<!--        android:textAllCaps="false"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/get_available_net_interface" />-->
 
-    <Button
-        android:id="@+id/get_traffic_state"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="handleClick"
-        android:text="@string/get_traffic_state"
-        android:textAllCaps="false"
-        app:layout_constraintTop_toBottomOf="@id/get_available_net_interface" />
-
-    <Button
-        android:id="@+id/test_website"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="handleClick"
-        android:text="@string/test_website"
-        android:textAllCaps="false"
-        app:layout_constraintTop_toBottomOf="@id/get_traffic_state" />
+<!--    <Button-->
+<!--        android:id="@+id/test_website"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="handleClick"-->
+<!--        android:text="@string/test_website"-->
+<!--        android:textAllCaps="false"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/get_traffic_state" />-->
 
 
-    <Button
-        android:id="@+id/test_udp_socket"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="handleClick"
-        android:text="@string/test_udp_socket"
-        android:textAllCaps="false"
-        app:layout_constraintTop_toBottomOf="@id/test_website" />
+<!--    <Button-->
+<!--        android:id="@+id/test_udp_socket"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="handleClick"-->
+<!--        android:text="@string/test_udp_socket"-->
+<!--        android:textAllCaps="false"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/test_website" />-->
     <TextView
         android:id="@+id/recv_msg"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/recv_msg"
-        app:layout_constraintTop_toBottomOf="@id/test_udp_socket" />
+        app:layout_constraintTop_toBottomOf="@id/test_ecmp_mode" />
 
     <WebView
         android:id="@+id/webview"
