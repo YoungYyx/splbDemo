@@ -152,21 +152,37 @@
 <!--            app:layout_constraintTop_toBottomOf="@id/get_wifi_signal_level" />-->
     </androidx.constraintlayout.widget.ConstraintLayout>
         <Button
-            android:id="@+id/test_ecmp_mode"
+            android:id="@+id/test_lte_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/test_ecmp_mode"
+            android:text="@string/test_lte_mode"
             android:textAllCaps="false"
             app:layout_constraintTop_toBottomOf="@id/line" />
         <Button
-            android:id="@+id/stop_test_ecmp_mode"
+            android:id="@+id/stop_test_lte_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="handleClick"
-            android:text="@string/stop_test_ecmp_mode"
+            android:text="@string/stop_test_lte_mode"
             android:textAllCaps="false"
-            app:layout_constraintTop_toBottomOf="@id/test_ecmp_mode" />
+            app:layout_constraintTop_toBottomOf="@id/test_lte_mode" />
+        <Button
+            android:id="@+id/test_wifi_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/test_wifi_mode"
+            android:textAllCaps="false"
+            app:layout_constraintTop_toBottomOf="@id/stop_test_lte_mode" />
+        <Button
+            android:id="@+id/stop_test_wifi_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="handleClick"
+            android:text="@string/stop_test_wifi_mode"
+            android:textAllCaps="false"
+            app:layout_constraintTop_toBottomOf="@id/test_wifi_mode" />
 <!--    <Button-->
 <!--        android:id="@+id/get_available_net_interface"-->
 <!--        android:layout_width="match_parent"-->
@@ -208,7 +224,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/recv_msg"
-        app:layout_constraintTop_toBottomOf="@id/test_ecmp_mode" />
+        app:layout_constraintTop_toBottomOf="@id/stop_test_wifi_mode" />
 
     <WebView
         android:id="@+id/webview"

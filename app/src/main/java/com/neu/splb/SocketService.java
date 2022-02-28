@@ -110,6 +110,9 @@ public class SocketService {
         lteProbeThread = new Thread(new Runnable() { //启动线程在lte网卡发送探测包
             @Override
             public void run() {
+                System.out.println("running lte probe");
+                System.out.println(lteSocket);
+                System.out.println(wifiSocket);
                 SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,0,0);
 
                 try {
@@ -128,6 +131,7 @@ public class SocketService {
         lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡监听探测包
             @Override
             public void run() {
+                System.out.println("running lte send probe");
                 byte[] realData = new byte[530];
                 for (int i = 0; i < realData.length; i++) {
                     realData[i] = 1;
@@ -155,6 +159,7 @@ public class SocketService {
         wifiProbeThread = new Thread(new Runnable() { //启动线程在wifi网卡发送探测包
             @Override
             public void run() {
+                System.out.println("running wifi probe");
                 SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,1,0);
                 InetAddress address = null;
                 try {

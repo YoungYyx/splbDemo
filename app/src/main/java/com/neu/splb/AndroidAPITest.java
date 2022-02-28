@@ -90,6 +90,7 @@ public class AndroidAPITest {
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
+                    System.out.println("----"+network.toString());
                     network.bindSocket(wifiSocket);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -106,6 +107,7 @@ public class AndroidAPITest {
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
+                    System.out.println("----"+network.toString());
                     network.bindSocket(cellularSocket);
                 } catch (IOException e) {
                     e.printStackTrace();

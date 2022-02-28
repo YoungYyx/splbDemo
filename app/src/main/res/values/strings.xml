@@ -19,8 +19,10 @@
     <string name="stop_test_splb_mode3">stopTestSplbMode3</string>
     <string name="test_splb_mode4">testSplbMode4</string>
     <string name="stop_test_splb_mode4">stopTestSplbMode4</string>
-    <string name="test_ecmp_mode">testEcmpMode</string>
-    <string name="stop_test_ecmp_mode">stopTestEcmpMode</string>
+    <string name="test_lte_mode">testLtePath</string>
+    <string name="stop_test_lte_mode">stopTestLtePath</string>
+    <string name="test_wifi_mode">testWifiPath</string>
+    <string name="stop_test_wifi_mode">stopTestWifiPath</string>
     <string name="test_udp_socket">testUdpSocket</string>
     <string name="recv_msg">receive message:</string>
     <!--<string name=""></string>
