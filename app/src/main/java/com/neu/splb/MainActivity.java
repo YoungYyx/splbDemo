@@ -201,76 +201,50 @@ public class MainActivity extends AppCompatActivity {
 //    }
 
     private void testNetwork(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void testSplbMode1(){
         try {
             //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
+            try {
+                TextView textView = findViewById(R.id.recv_msg);
+                textView.setText("splb模式1已开始");
+                SocketService.getInstance().testSplbMode1("47.95.28.241",18882);
+
+
+            } catch (SocketException | InterruptedException e) {
+                e.printStackTrace();
+                TextView textView = findViewById(R.id.recv_msg);
+                textView.setText("splb模式1启动失败");
+            }
+
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        //AndroidAPITest.getInstance().initSocket();
     }
     private void testSplbMode2(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void testSplbMode3(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void testSplbMode4(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void stopTestSplbMode1(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+        SocketService.getInstance().stopSendPkt();
+        TextView textView = findViewById(R.id.recv_msg);
+        textView.setText("splb模式1已结束");
     }
     private void stopTestSplbMode2(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void stopTestSplbMode3(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void stopTestSplbMode4(){
-        try {
-            //现在用的假的IP
-            SocketService.getInstance().testSimpleSplb("192.168.1.1",10000);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+
     }
     private void testWebSite() {
         WebView webView = findViewById(R.id.webview);

@@ -21,10 +21,6 @@ public class AndroidAPITest {
 
     private ConnectivityManager manager = null;
 
-    private DatagramSocket wifiSocket = null;
-
-    private DatagramSocket cellularSocket = null;
-
     //
     public static AndroidAPITest getInstance(){
         if (instance == null){
@@ -34,15 +30,7 @@ public class AndroidAPITest {
                 }
             }
         }
-        instance.initSocket();
         return instance;
-    }
-    public DatagramSocket  getWifiSocket(){
-        return wifiSocket;
-    }
-
-    public DatagramSocket getCellularSocket(){
-        return cellularSocket;
     }
 
     //获取ConnectivityManager对象
@@ -58,60 +46,72 @@ public class AndroidAPITest {
 
     //获取wifi网络类型的NetworkRequest
     private NetworkRequest getWifiNetworkRequest(){
-        NetworkRequest.Builder defaultBuilder = new NetworkRequest.Builder();
-        NetworkRequest.Builder builder = defaultBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-        return builder.build();
+        NetworkRequest.Builder defaultBuilder = new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        return defaultBuilder.build();
     }
 
     //获取cellular网络类型的NetworkRequest
     private NetworkRequest getCellularNetworkRequest(){
-        NetworkRequest.Builder defaultBuilder = new NetworkRequest.Builder();
-        NetworkRequest.Builder builder = defaultBuilder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
-        return builder.build();
+        NetworkRequest.Builder defaultBuilder = new NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        return defaultBuilder.build();
     }
 
-    public void initSocket(){
-        try {
-            wifiSocket = SocketService.getInstance().getUdpSocket();
-            cellularSocket = SocketService.getInstance().getUdpSocket();
-            bindWifiSocket();
-            bindCellularSocket();
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-    }
+    //只在应用启动时调用一次
+//    public void initSocket(){
+//        try {
+//            wifiSocket = SocketService.getInstance().getUdpSocket();
+//            cellularSocket = SocketService.getInstance().getUdpSocket();
+//            bindWifiSocket();
+//            bindCellularSocket();
+//        } catch (SocketException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 
     //绑定到wifi网络的socket
-    private void bindWifiSocket(){
+    public void bindWifiSocket(DatagramSocket wifiSocket){
         ConnectivityManager man = getConManager();
         man.requestNetwork(getWifiNetworkRequest(),new ConnectivityManager.NetworkCallback(){
             @Override
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
-                    System.out.println("----"+network.toString());
+                    System.out.println("1-----"+network.toString());
                     network.bindSocket(wifiSocket);
+                    System.out.println("绑定wifi到"+network);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+
+            @Override
+            public void onUnavailable() {
+                super.onUnavailable();
+                System.out.println("1-----网络不可达");
             }
         });
     }
 
     //绑定到cellular网络的socket
-    private void bindCellularSocket(){
+    public void bindCellularSocket(DatagramSocket cellularSocket){
         ConnectivityManager man = getConManager();
         man.requestNetwork(getCellularNetworkRequest(),new ConnectivityManager.NetworkCallback(){
             @Override
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
-                    System.out.println("----"+network.toString());
+                    System.out.println("2----"+network.toString());
                     network.bindSocket(cellularSocket);
+                    System.out.println("绑定lte到"+network);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+            @Override
+            public void onUnavailable() {
+                super.onUnavailable();
+                System.out.println("2-----网络不可达");
             }
         });
     }
