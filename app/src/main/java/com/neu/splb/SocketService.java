@@ -250,7 +250,7 @@ public class SocketService {
         final DatagramSocket wifiSocket = this.getUdpSocket();
         apiInstance.bindWifiSocket(wifiSocket);
         sleep(3000);
-        wifiListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡发送数据包
+        wifiListenAndSend = new Thread(new Runnable() {
             @Override
             public void run() {
                 System.out.println("running wifi");
@@ -272,6 +272,7 @@ public class SocketService {
                 wifiSocket.close();
             }
         });
+        wifiListenAndSend.start();
     }
 
     public void testLtePath(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
@@ -305,6 +306,7 @@ public class SocketService {
                lteSocket.close();
             }
         });
+        lteListenAndSend.start();
     }
     public static byte[] byteMerger(byte[] bt1, byte[] bt2){
         byte[] bt3 = new byte[bt1.length+bt2.length];

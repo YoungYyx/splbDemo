@@ -102,6 +102,12 @@ public class MainActivity extends AppCompatActivity {
             case R.id.test_splb_mode4:
                 testSplbMode4();
                 break;
+            case R.id.test_lte_mode:
+                testLteMode();
+                break;
+            case R.id.test_wifi_mode:
+                testWiFiMode();
+                break;
             case R.id.stop_test_splb_mode1:
                 stopTestSplbMode1();
                 break;
@@ -113,6 +119,12 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.stop_test_splb_mode4:
                 stopTestSplbMode4();
+                break;
+            case R.id.stop_test_lte_mode:
+                stopTestLteMode();
+                break;
+            case R.id.stop_test_wifi_mode:
+                stopTestWifiMode();
                 break;
             default:
                 break;
@@ -205,23 +217,16 @@ public class MainActivity extends AppCompatActivity {
     }
     private void testSplbMode1(){
         try {
-            //现在用的假的IP
-            try {
-                TextView textView = findViewById(R.id.recv_msg);
-                textView.setText("splb模式1已开始");
-                SocketService.getInstance().testSplbMode1("47.95.28.241",18882);
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("splb模式1已开始");
+            SocketService.getInstance().testSplbMode1("47.95.28.241",18882);
 
 
-            } catch (SocketException | InterruptedException e) {
-                e.printStackTrace();
-                TextView textView = findViewById(R.id.recv_msg);
-                textView.setText("splb模式1启动失败");
-            }
-
-        } catch (UnknownHostException e) {
+        } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("splb模式1启动失败");
         }
-        //AndroidAPITest.getInstance().initSocket();
     }
     private void testSplbMode2(){
 
@@ -231,6 +236,31 @@ public class MainActivity extends AppCompatActivity {
     }
     private void testSplbMode4(){
 
+    }
+    private void testLteMode(){
+        try {
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("LTE链路性能测试已开始");
+            SocketService.getInstance().testLtePath("47.95.28.241",18882);
+
+
+        } catch (SocketException | InterruptedException |UnknownHostException e) {
+            e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("LTE链路测试启动失败");
+        }
+    }
+    private void testWiFiMode(){
+        try {
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("WiFi链路性能测试已开始");
+            SocketService.getInstance().testWiFiPath("47.95.28.241",18882);
+
+        } catch (SocketException | InterruptedException | UnknownHostException e) {
+            e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("WiFi链路测试启动失败");
+        }
     }
     private void stopTestSplbMode1(){
         SocketService.getInstance().stopSendPkt();
@@ -245,6 +275,16 @@ public class MainActivity extends AppCompatActivity {
     }
     private void stopTestSplbMode4(){
 
+    }
+    private void stopTestLteMode(){
+        SocketService.getInstance().stopSendPkt();
+        TextView textView = findViewById(R.id.recv_msg);
+        textView.setText("LTE测速已结束");
+    }
+    private void stopTestWifiMode(){
+        SocketService.getInstance().stopSendPkt();
+        TextView textView = findViewById(R.id.recv_msg);
+        textView.setText("WiFi测速已结束");
     }
     private void testWebSite() {
         WebView webView = findViewById(R.id.webview);
