@@ -229,7 +229,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void testSplbMode2(){
+        try {
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("splb模式2已开始");
+            SocketService.getInstance().testTwoSocketSender("47.95.28.241",18882);
 
+
+        } catch (SocketException | InterruptedException | UnknownHostException e) {
+            e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("splb模式2启动失败");
+        }
     }
     private void testSplbMode3(){
 
@@ -268,7 +278,9 @@ public class MainActivity extends AppCompatActivity {
         textView.setText("splb模式1已结束");
     }
     private void stopTestSplbMode2(){
-
+        SocketService.getInstance().stopSendPkt();
+        TextView textView = findViewById(R.id.recv_msg);
+        textView.setText("splb模式2已结束");
     }
     private void stopTestSplbMode3(){
 
