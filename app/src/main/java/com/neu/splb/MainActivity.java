@@ -219,9 +219,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式1已开始");
-            SocketService.getInstance().testSplbMode1("47.95.28.241",18882);
-
-
+            SocketService.getInstance().testSplbMode1("172.22.5.16",18882);
         } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
             TextView textView = findViewById(R.id.recv_msg);
@@ -229,17 +227,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void testSplbMode2(){
-        try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式2已开始");
-            SocketService.getInstance().testTwoSocketSender("47.95.28.241",18882);
-
-
-        } catch (SocketException | InterruptedException | UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("splb模式2启动失败");
-        }
     }
     private void testSplbMode3(){
 
@@ -251,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("LTE链路性能测试已开始");
-            SocketService.getInstance().testLtePath("47.95.28.241",18882);
+            SocketService.getInstance().testLteTCP("47.95.28.241",18885);
 
 
         } catch (SocketException | InterruptedException |UnknownHostException e) {
