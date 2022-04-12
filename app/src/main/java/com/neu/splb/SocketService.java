@@ -3,15 +3,10 @@ package com.neu.splb;
 
 import static java.lang.Thread.sleep;
 
-import androidx.core.util.TimeUtils;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -19,18 +14,23 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
+/*
+* 数据包类型
+*
+* */
 enum PacketType{
     DATAPKG((byte)0),   //数据包
     PROBEPKG((byte)1),  //探测包
     ACKPKG((byte)2),    //ACK报文
-    NAKPKG((byte)3);    //NAK报文
+    NAKPKG((byte)3),   //NAK报文
+    RETRANS((byte)4);   //重传包
 
     public byte t;
 
@@ -38,12 +38,20 @@ enum PacketType{
         this.t= t;
     }
 }
+
+
+
+/*
+* SPLB头部
+* */
 class SplbHdr{
+    long timeStamp = 0L;
     int probeSeq;   //探测序号
     int pathSeq;    //路径序号
     int dataSeq;    //数据序号
     PacketType type;
     byte pathNum;   //子路径编码
+
 
     SplbHdr(PacketType t,byte pathNum,int probeSeq,int pathSeq,int dataSeq){
         this.type = t;
@@ -54,24 +62,29 @@ class SplbHdr{
     }
     SplbHdr(byte[] hdr){
         ByteBuffer byteBuffer = ByteBuffer.wrap(hdr);
+        this.timeStamp = byteBuffer.getLong();
         this.probeSeq = byteBuffer.getInt();
         this.pathSeq = byteBuffer.getInt();
         this.dataSeq = byteBuffer.getInt();
         byte t = byteBuffer.get();
-        if(t == 0){
-            this.type = PacketType.DATAPKG;
-        }else if(t == 1){
-            this.type = PacketType.PROBEPKG;
-        }else if(t == 2){
-            this.type = PacketType.ACKPKG;
-        }else if(t == 3){
-            this.type = PacketType.NAKPKG;
+        switch (t){
+            case (byte)0:
+                this.type = PacketType.DATAPKG;break;
+            case (byte)1:
+                this.type = PacketType.PROBEPKG;break;
+            case (byte)2:
+                this.type = PacketType.ACKPKG;break;
+            case (byte)3:
+                this.type = PacketType.NAKPKG;break;
+            case (byte)4:
+                this.type = PacketType.RETRANS;break;
         }
         this.pathNum = byteBuffer.get();
 
     }
     public byte[] toByteArray() {
-        ByteBuffer buf = ByteBuffer.allocate(14);
+        ByteBuffer buf = ByteBuffer.allocate(22);
+        buf.putLong(this.timeStamp);
         buf.putInt(this.probeSeq);
         buf.putInt(this.pathSeq);
         buf.putInt(this.dataSeq);
@@ -81,8 +94,15 @@ class SplbHdr{
     }
 
 }
+
+
+/*
+* 获取发送数据的工具类
+* */
 class DataUtils{
+    static SplbHdr hdr;
     static byte[] data;
+
     static {
         data = new byte[512];
         for (int i = 0; i < data.length; i++) {
@@ -99,32 +119,15 @@ class DataUtils{
         return data;
     }
 }
-class LTEState{
-    public int lteBaseProbeGap = 300;   //lte探测包基础间隔, us
-    public int lteACKThreshold = 3;     //连续ack阈值
-    public int lteContinueAck = 0;
-    public int probeScale = 200;        //探测包对应数据包比例
-    public int probeStep = 10;           //间隔减小的步长
-    public DatagramSocket sock = null;
-    public InetAddress dstIP = null;
-    public int dstPort = 0;
-    public AtomicInteger pathSeq = null;
-    public AtomicInteger dataSeq = null;
-    int ackedSeq = 0;           //已经ack的路径序号
-    public HashMap<Integer,Integer> dataMap = null;
 
-    public LTEState(DatagramSocket sock, InetAddress dstIP, int dstPort, AtomicInteger pathSeq, AtomicInteger dataSeq, HashMap<Integer, Integer> dataMap) {
-        this.sock = sock;
-        this.dstIP = dstIP;
-        this.dstPort = dstPort;
-        this.pathSeq = pathSeq;
-        this.dataSeq = dataSeq;
-        this.dataMap = dataMap;
-    }
-}
-class WiFiState{
-    public int wifiBaseProbeGap = 300;   //探测包基础间隔, us
-    public int wifiACKThreshold = 3;     //连续ack阈值
+class WiFiControlBlock{
+    public boolean endSign =false;
+    public boolean lostState = false;
+    public int wifiBaseProbeGap = 40;   //探测包基础间隔, us
+    public int wifiACKThreshold = 200;     //连续ack阈值
+    public int wifiLastNakSeq = 0;
+    public int wifiContinueNAK = 0;
+    public int wifiRepeatAck = 0;
     public int wifiContinueAck = 0;
     public int probeScale = 200;        //探测包对应数据包比例
     public int probeStep = 10;           //间隔减小的步长
@@ -133,93 +136,292 @@ class WiFiState{
     public int dstPort = 0;
     public AtomicInteger pathSeq = null;
     public AtomicInteger dataSeq = null;
+    public AtomicInteger inflight = new AtomicInteger(0);
     int ackedSeq = 0;           //已经ack的路径序号
-    public HashMap<Integer,Integer> dataMap = null;
+    int kPackets = 3;
+    long timeThreshold = kPackets * wifiBaseProbeGap + 100;
+    public ConcurrentHashMap<Integer,Integer> dataMap = null;
+    public ExecutorService wifiProbeExecutor = null;
+    public ExecutorService wifiRecvExecutor = null;
+    public ExecutorService wifiDataExecutor = null;
+    public ExecutorService wifiAckAndNakExecutor = null;
+    public ExecutorService wifiPTOExecutor = null;
 
-    public WiFiState(DatagramSocket sock, InetAddress dstIP, int dstPort, AtomicInteger pathSeq, AtomicInteger dataSeq, HashMap<Integer, Integer> dataMap) {
+    public WiFiControlBlock(DatagramSocket sock, InetAddress dstIP, int dstPort, AtomicInteger pathSeq, AtomicInteger dataSeq, ConcurrentHashMap<Integer, Integer> dataMap) {
         this.sock = sock;
         this.dstIP = dstIP;
         this.dstPort = dstPort;
         this.pathSeq = pathSeq;
         this.dataSeq = dataSeq;
         this.dataMap = dataMap;
+        wifiProbeExecutor = Executors.newSingleThreadExecutor();
+        wifiRecvExecutor = Executors.newSingleThreadExecutor();
+        wifiDataExecutor = Executors.newSingleThreadExecutor();
+        wifiAckAndNakExecutor = Executors.newSingleThreadExecutor();
+        wifiPTOExecutor = Executors.newSingleThreadExecutor();
     }
 }
-class LTETask implements Runnable {
+class WiFiProbeTask implements Runnable{
 
-    public SplbHdr hdr;
-    LTEState state;
+    WiFiControlBlock wifiControlBlock = null;
 
-    LTETask(SplbHdr hdr,LTEState state){
-        super();
-        this.hdr = hdr;
-        this.state = state;
+    WiFiProbeTask(WiFiControlBlock wifiControlBlock){
+        this.wifiControlBlock = wifiControlBlock;
     }
+
     @Override
     public void run() {
-        for (int i = 0; i < state.probeScale; i++) {
-            hdr.pathSeq = state.pathSeq.getAndIncrement();  //路径序号自增
-            hdr.dataSeq = state.dataSeq.getAndIncrement();   //数据序号自增
-            byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.getData());
-            DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,state.dstIP,state.dstPort);
-            try {
-                state.sock.send(sendPacket);
-                state.dataMap.put(hdr.pathSeq,hdr.dataSeq);
-                TimeUnit.MICROSECONDS.sleep(state.lteBaseProbeGap);
-            } catch (IOException | InterruptedException e) {
-
+        System.out.println("running wifi probe");
+        SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)1,1,0,0);
+        try {
+            while(!Thread.currentThread().isInterrupted()){
+                byte[] probe = probeHdr.toByteArray();
+                DatagramPacket packet = new DatagramPacket(probe,probe.length,wifiControlBlock.dstIP,wifiControlBlock.dstPort);
+                wifiControlBlock.sock.send(packet);
+                TimeUnit.MICROSECONDS.sleep(wifiControlBlock.wifiBaseProbeGap * wifiControlBlock.probeScale);
+                probeHdr.probeSeq++;
             }
+        } catch (IOException | InterruptedException e) {
+            //e.printStackTrace();
         }
     }
 }
+class WiFiRecvTask implements Runnable{
 
-class WiFiTask implements Runnable {
+    WiFiControlBlock wifiControlBlock = null;
+
+    WiFiRecvTask(WiFiControlBlock wifiControlBlock){
+        this.wifiControlBlock = wifiControlBlock;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while(!wifiControlBlock.endSign){
+                byte[] data = new byte[22];
+                DatagramPacket probePacket = new DatagramPacket(data,data.length);
+                wifiControlBlock.sock.receive(probePacket);
+                byte[] msg = probePacket.getData();
+                SplbHdr hdr = new SplbHdr(msg);
+                if(hdr.type == PacketType.PROBEPKG) //报文为回传探测包类
+                {
+                    WiFiDataTask dataTask = new WiFiDataTask(hdr,wifiControlBlock);
+                    wifiControlBlock.wifiDataExecutor.execute(dataTask);
+                }
+                else{
+                    WiFiAckAndNakTask ackAndNakTask = new WiFiAckAndNakTask(hdr,wifiControlBlock);
+                    wifiControlBlock.wifiAckAndNakExecutor.execute(ackAndNakTask);
+                }
+            }
+        } catch (IOException e) {
+            //e.printStackTrace();
+        }
+    }
+}
+class WiFiDataTask implements Runnable{
 
     public SplbHdr hdr;
-    WiFiState state;
+    WiFiControlBlock controblock;
 
-    WiFiTask(SplbHdr hdr,WiFiState state){
+    WiFiDataTask(SplbHdr hdr,WiFiControlBlock controblock){
         super();
         this.hdr = hdr;
-        this.state = state;
+        this.controblock = controblock;
     }
     @Override
     public void run() {
-        System.out.println("开始任务-----------");
-        for (int i = 0; i < state.probeScale; i++) {
-            hdr.pathSeq = state.pathSeq.getAndIncrement();  //路径序号自增
-            hdr.dataSeq = state.dataSeq.getAndIncrement();   //数据序号自增
-            byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.getData());
-            DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,state.dstIP,state.dstPort);
-            try {
-                state.sock.send(sendPacket);
-                System.out.println("发送数据："+hdr.pathSeq);
-                state.dataMap.put(hdr.pathSeq,hdr.dataSeq);
-                TimeUnit.MICROSECONDS.sleep(state.wifiBaseProbeGap);
-            } catch (IOException | InterruptedException e) {
+        //System.out.println("开始任务-----------");
+        for (int i = 0; i < controblock.probeScale; i++) {
+            if (controblock.lostState == true || controblock.inflight.get() >= 10000 ) {
+                // System.out.println("cwnd已满" + controblock.ackedSeq + controblock.pathSeq);
+            } else {
+                SplbHdr dataHdr = new SplbHdr(PacketType.DATAPKG,(byte)1,hdr.probeSeq,controblock.pathSeq.getAndIncrement(), controblock.dataSeq.getAndIncrement());
+                if(dataHdr.pathSeq == 1000000){
+                    controblock.wifiProbeExecutor.shutdownNow();
+                }else if(dataHdr.pathSeq > 1000000){
+                    return;
+                }
+                controblock.inflight.getAndIncrement();
+                dataHdr.timeStamp = System.nanoTime();
+                byte[] sendData =  DataUtils.byteMerger(dataHdr.toByteArray(),DataUtils.getData());
+                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,controblock.dstIP,controblock.dstPort);
+                try {
+                    controblock.sock.send(sendPacket);
+                   // System.out.println("发送"+hdr.pathSeq);
+                    controblock.dataMap.put(dataHdr.pathSeq,dataHdr.dataSeq);
+                  //  controblock.wifiPTOExecutor.execute(new WiFiPacketTimeOutTask(dataHdr,controblock));
+                    //TimeUnit.MICROSECONDS.sleep(controblock.wifiBaseProbeGap);
+                    TimeUnit.MICROSECONDS.sleep(5);
+                } catch (IOException | InterruptedException e) {
 
+                }
             }
+
+
         }
-        System.out.println("结束任务-----------");
+       // System.out.println("结束任务-----------");
     }
 }
+
+class WiFiAckAndNakTask implements Runnable{
+    public SplbHdr hdr;
+    WiFiControlBlock WiFiControlBlock;
+    WiFiAckAndNakTask(SplbHdr hdr,WiFiControlBlock controblock){
+        super();
+        this.hdr = hdr;
+        this.WiFiControlBlock = controblock;
+    }
+
+    @Override
+    public void run() {
+        if(hdr.type == PacketType.ACKPKG){
+            //System.out.println("wifi recv ack :" + hdr.pathSeq + ","+WiFiControlBlock.pathSeq);
+            if(WiFiControlBlock.ackedSeq == hdr.pathSeq){
+                WiFiControlBlock.wifiRepeatAck++;
+                if(WiFiControlBlock.wifiRepeatAck == 3){
+                    hdr.type = PacketType.RETRANS;
+                    int lostStartPathSeq = hdr.pathSeq;
+                    for (int i = WiFiControlBlock.ackedSeq+1; i < lostStartPathSeq ; i++) { //说明之前的数据已经接收了
+                        WiFiControlBlock.dataMap.remove(i);
+                    }
+                    int lostEndPathSeq = hdr.dataSeq;
+                    for (int i = lostStartPathSeq ; i <= lostEndPathSeq ; i++) {
+                        Integer lostDataSeq = WiFiControlBlock.dataMap.get(i);
+                        if(lostDataSeq == null) continue;
+                        hdr.pathSeq = i;
+                        hdr.dataSeq = lostDataSeq;
+                        byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.data);
+                        DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,WiFiControlBlock.dstIP,WiFiControlBlock.dstPort);
+                        try {
+                            WiFiControlBlock.sock.send(sendPacket);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                     //   System.out.println("ACK触发wifi重新发送"+i);
+                    }
+                }
+            }else{
+                WiFiControlBlock.wifiRepeatAck = 1 ;
+                WiFiControlBlock.wifiContinueAck++;
+                if(WiFiControlBlock.wifiContinueAck > WiFiControlBlock.wifiACKThreshold){
+                    //WiFiControlBlock.wifiBaseProbeGap -= WiFiControlBlock.probeStep;
+                }
+                for (int i = WiFiControlBlock.ackedSeq+1; i <= hdr.pathSeq ; i++) { //说明之前的数据已经接收了
+                    WiFiControlBlock.dataMap.remove(i);
+                    WiFiControlBlock.inflight.getAndDecrement();
+                }
+                WiFiControlBlock.ackedSeq = hdr.pathSeq;
+            }
+        }else{
+            int lostStartPathSeq = hdr.pathSeq;
+            int lostEndPathSeq = hdr.dataSeq;
+            //System.out.println("recv NAK:" + lostStartPathSeq + " -> " + lostEndPathSeq +"现在已经发送到："+WiFiControlBlock.pathSeq.get());
+            if(lostEndPathSeq <= WiFiControlBlock.ackedSeq){
+                //do nothing
+                System.out.println("已经ack");
+            }else{
+                for (int i = WiFiControlBlock.ackedSeq+1; i < lostStartPathSeq ; i++) { //说明之前的数据已经接收了
+                    WiFiControlBlock.dataMap.remove(i);
+                }
+                WiFiControlBlock.ackedSeq = lostStartPathSeq - 1; //已经ack的数据为丢失报文前一个
+                if(lostStartPathSeq == WiFiControlBlock.wifiLastNakSeq) {
+                    WiFiControlBlock.wifiContinueNAK++;
+                    if(WiFiControlBlock.wifiContinueNAK == 3){ //连续3个nak
+                        WiFiControlBlock.lostState = true;
+                        WiFiControlBlock.wifiContinueAck = 0;
+                       // WiFiControlBlock.wifiBaseProbeGap += 20;   //增加探测包间隔
+                        hdr.type = PacketType.RETRANS;
+                        for (int i = lostStartPathSeq ; i <= lostEndPathSeq ; i++) {
+                            Integer lostDataSeq = WiFiControlBlock.dataMap.get(i);
+                            if(lostDataSeq == null){
+                                System.out.println("丢失 path:"+i+"acked:"+WiFiControlBlock.ackedSeq);
+                            }
+                            hdr.pathSeq = i;
+                            hdr.dataSeq = lostDataSeq;
+                            byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.data);
+                            DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,WiFiControlBlock.dstIP,WiFiControlBlock.dstPort);
+                            try {
+                                WiFiControlBlock.sock.send(sendPacket);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                        System.out.println("NAK触发wifi重新发送"+lostStartPathSeq + " -> " + lostEndPathSeq+"现在已经发送到："+WiFiControlBlock.pathSeq.get());
+                        WiFiControlBlock.lostState = false;
+                    }
+                }else{
+                    // do nothing
+                    WiFiControlBlock.wifiLastNakSeq = lostStartPathSeq;
+                    WiFiControlBlock.wifiContinueNAK = 1;
+                }
+            }
+        }
+
+    }
+}
+
+//class WiFiPacketTimeOutTask implements Runnable,Comparable<WiFiPacketTimeOutTask>{
+//
+//    public SplbHdr hdr;
+//    WiFiControlBlock controblock;
+//
+//    WiFiPacketTimeOutTask(SplbHdr hdr,WiFiControlBlock controblock){
+//        this.hdr = hdr;
+//        this.controblock = controblock;
+//    }
+//
+//    public int getInteval(long start,long end){    // ns -> us;
+//        return (int)(end - start)/1000;
+//    }
+//
+//    @Override
+//    public void run() {
+//        //System.out.println("PTO-》"+hdr.pathSeq +":"+hdr.timeStamp);
+//        if(hdr.pathSeq <= controblock.ackedSeq){
+//            return;
+//        }else{
+//            long sendTimeStamp = hdr.timeStamp;
+//            int inteval = getInteval(System.nanoTime(),sendTimeStamp);
+//            if(inteval < controblock.timeThreshold){
+//                try {
+//                    TimeUnit.MICROSECONDS.sleep(controblock.timeThreshold - inteval);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            if(hdr.pathSeq <= controblock.ackedSeq){
+//               // System.out.println("已经ack");
+//                return;
+//            }else{
+//                hdr.type = PacketType.RETRANS;
+//                hdr.timeStamp = System.nanoTime();
+//                byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.getData());
+//                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,controblock.dstIP,controblock.dstPort);
+//               // System.out.println("PTO触发wifi重新发送"+hdr.pathSeq);
+//                controblock.wifiPTOExecutor.execute(this);
+//                try {
+//                    controblock.sock.send(sendPacket);
+//                } catch (IOException e) {
+//
+//                }
+//            }
+//        }
+//    }
+//
+//    @Override
+//    public int compareTo(WiFiPacketTimeOutTask o) {
+//        return this.hdr.timeStamp > o.hdr.timeStamp? -1 : 1;
+//    }
+//}
+
+
 public class SocketService {
     private static final String TAG = "Socket Service";
     private volatile boolean isStartNow = false;    //开始标志
     public static int basePort = 50000;         //分配的基础端口号
-    private Thread lteProbeThread = null;       //lte探测线程
-    private Thread wifiProbeThread = null;      //wifi探测线程
-    private Thread lteListenAndSend = null;     //lte数据线程
-    private Thread wifiListenAndSend = null;    //wifi数据线程
     public static SocketService instance = null;
-
-
-    private LTEState lteState = null;
-    private ExecutorService lteExecutor = null;
-    private WiFiState wifiState = null;
-    private ExecutorService wifiExecutor = null;
-
-
+    private WiFiControlBlock wifiControlBlock = null;
     //获取SocketService类实例
     public static SocketService getInstance(){
         if (instance == null) {
@@ -244,214 +446,28 @@ public class SocketService {
         final DatagramSocket lteSocket = this.getUdpSocket();
         final DatagramSocket wifiSocket = this.getUdpSocket();
         apiInstance.bindWifiSocket(wifiSocket);
-        apiInstance.bindCellularSocket(lteSocket);
+     //   apiInstance.bindCellularSocket(lteSocket);
         sleep(2000);
         InetAddress address = InetAddress.getByName(IP);
-        AtomicInteger ltePathSeq = new AtomicInteger(1);
         AtomicInteger wifiPathSeq = new AtomicInteger(1);
         AtomicInteger dataSeq = new AtomicInteger(1);
-        HashMap<Integer,Integer> lteDataMap = new HashMap<>();
-        HashMap<Integer,Integer> wifiDataMap = new HashMap<>();
-        lteState = new LTEState(lteSocket,address,dstPort,ltePathSeq,dataSeq,lteDataMap);
-        wifiState = new WiFiState(wifiSocket,address,dstPort,wifiPathSeq,dataSeq,wifiDataMap);
-        lteExecutor = Executors.newSingleThreadExecutor();
-        wifiExecutor = Executors.newSingleThreadExecutor();
-        lteProbeThread = new Thread(new Runnable() { //启动线程在lte网卡发送探测包
-            @Override
-            public void run() {
-                System.out.println("running lte probe");
-                SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)0,1,0,0);
-                try {
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] probe = probeHdr.toByteArray();
-                        DatagramPacket packet = new DatagramPacket(probe,probe.length,lteState.dstIP,lteState.dstPort);
-                        lteState.sock.send(packet);
-                        TimeUnit.MICROSECONDS.sleep(lteState.lteBaseProbeGap * lteState.probeScale);
-                        probeHdr.probeSeq++;
-                    }
-                } catch (IOException | InterruptedException e) {
-                    //e.printStackTrace();
-                }
-                lteSocket.close();
-            }
-        });
-
-        lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡监听探测包
-            @Override
-            public void run() {
-                //填充一些数据作为payload,假的数据，后续可改为从文件读取
-
-                try {
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] data = new byte[14];
-                        DatagramPacket probePacket = new DatagramPacket(data,data.length);
-                        lteSocket.receive(probePacket);
-
-                        InetAddress srcIP = probePacket.getAddress();
-                        int srcPort = probePacket.getPort();
-                        byte[] msg = probePacket.getData();
-                        SplbHdr hdr = new SplbHdr(msg);
-
-
-                        if(hdr.type == PacketType.PROBEPKG) //报文为回传探测包类
-                        {
-                            hdr.type = PacketType.DATAPKG;                  //改为数据包类型
-                            LTETask work = new LTETask(hdr,lteState);
-                            lteExecutor.execute(work);
-
-                        }
-                        else if(hdr.type == PacketType.NAKPKG)//NAK包，丢包了
-                        {
-                            lteState.lteContinueAck = 0;
-                            System.out.println("----------recv nak :" + hdr.pathSeq);
-                            lteState.lteBaseProbeGap += lteState.probeStep;   //增加探测包间隔
-                            hdr.type = PacketType.DATAPKG;
-                            int lostStartPathSeq = hdr.pathSeq;
-                            int lostEndPathSeq = hdr.dataSeq;
-                            for (int i = lteState.ackedSeq+1; i < lostStartPathSeq ; i++) { //说明之前的数据已经接收了
-                                lteState.dataMap.remove(i);
-                            }
-                            lteState.ackedSeq = lostStartPathSeq - 1; //已经ack的数据为丢失报文前一个
-                            for (int i = lostStartPathSeq ; i <= lostEndPathSeq ; i++) {
-                                Integer lostDataSeq = lteState.dataMap.get(i);
-                                hdr.pathSeq = lostDataSeq;
-                                byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.data);
-                                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,srcIP,srcPort);
-                                lteState.sock.send(sendPacket);
-                            }
-                        }
-                        else if(hdr.type == PacketType.ACKPKG) //ACK包
-                        {
-                            lteState.lteContinueAck++;
-                            if(lteState.lteContinueAck > lteState.lteACKThreshold){
-                                lteState.lteBaseProbeGap -= lteState.probeStep;
-                            }
-                            for (int i = lteState.ackedSeq+1; i <= hdr.pathSeq ; i++) { //说明之前的数据已经接收了
-                                lteState.dataMap.remove(i);
-                            }
-                            lteState.ackedSeq = hdr.pathSeq;
-                        }
-                    }
-                } catch (IOException e) {
-                    //e.printStackTrace();
-                }
-            }
-        });
-
-        wifiProbeThread = new Thread(new Runnable() { //启动线程在wifi网卡发送探测包
-            @Override
-            public void run() {
-                System.out.println("running wifi probe");
-                SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)0,1,0,0);
-                try {
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] probe = probeHdr.toByteArray();
-                        DatagramPacket packet = new DatagramPacket(probe,probe.length,wifiState.dstIP,wifiState.dstPort);
-                        wifiState.sock.send(packet);
-                        TimeUnit.MICROSECONDS.sleep(wifiState.wifiBaseProbeGap * wifiState.probeScale);
-                        probeHdr.probeSeq++;
-                    }
-                } catch (IOException | InterruptedException e) {
-                    //e.printStackTrace();
-                }
-                wifiSocket.close();
-            }
-        });
-
-        wifiListenAndSend = new Thread(new Runnable() { //启动线程在wifi网卡监听探测包
-            @Override
-            public void run() {
-                //填充一些数据作为payload,假的数据，后续可改为从文件读取
-
-                try {
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] data = new byte[14];
-                        DatagramPacket probePacket = new DatagramPacket(data,data.length);
-                        wifiSocket.receive(probePacket);
-
-                        InetAddress srcIP = probePacket.getAddress();
-                        int srcPort = probePacket.getPort();
-                        byte[] msg = probePacket.getData();
-                        SplbHdr hdr = new SplbHdr(msg);
-
-
-                        if(hdr.type == PacketType.PROBEPKG) //报文为回传探测包类
-                        {
-                            hdr.type = PacketType.DATAPKG;                  //改为数据包类型
-                            WiFiTask work = new WiFiTask(hdr,wifiState);
-                            wifiExecutor.execute(work);
-
-                        }
-                        else if(hdr.type == PacketType.NAKPKG)//NAK包，丢包了
-                        {
-                            wifiState.wifiContinueAck = 0;
-                            System.out.println("----------recv nak :" + hdr.pathSeq);
-                            wifiState.wifiBaseProbeGap += wifiState.probeStep;   //增加探测包间隔
-                            hdr.type = PacketType.DATAPKG;
-                            int lostStartPathSeq = hdr.pathSeq;
-                            int lostEndPathSeq = hdr.dataSeq;
-                            for (int i = wifiState.ackedSeq+1; i < lostStartPathSeq ; i++) { //说明之前的数据已经接收了
-                                wifiState.dataMap.remove(i);
-                            }
-                            wifiState.ackedSeq = lostStartPathSeq - 1; //已经ack的数据为丢失报文前一个
-                            for (int i = lostStartPathSeq ; i <= lostEndPathSeq ; i++) {
-                                Integer lostDataSeq = wifiState.dataMap.get(i);
-                                hdr.pathSeq = lostDataSeq;
-                                byte[] sendData =  DataUtils.byteMerger(hdr.toByteArray(),DataUtils.data);
-                                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,srcIP,srcPort);
-                                wifiSocket.send(sendPacket);
-                            }
-                        }
-                        else if(hdr.type == PacketType.ACKPKG) //ACK包
-                        {
-                            wifiState.wifiContinueAck++;
-                            if(wifiState.wifiContinueAck > wifiState.wifiACKThreshold){
-                                wifiState.wifiBaseProbeGap -= wifiState.probeStep;
-                            }
-                            for (int i = wifiState.ackedSeq+1; i <= hdr.pathSeq ; i++) { //说明之前的数据已经接收了
-                                wifiState.dataMap.remove(i);
-                            }
-                            wifiState.ackedSeq = hdr.pathSeq;
-                        }
-                    }
-                } catch (IOException e) {
-                    //e.printStackTrace();
-                }
-            }
-        });
-
-
-        wifiProbeThread.start();
-        wifiListenAndSend.start();
+        ConcurrentHashMap<Integer,Integer> wifiDataMap = new ConcurrentHashMap<>();
+        wifiControlBlock = new WiFiControlBlock(wifiSocket,address,dstPort+1,wifiPathSeq,dataSeq,wifiDataMap);
+        wifiControlBlock.wifiProbeExecutor.execute(new WiFiProbeTask(wifiControlBlock));
+        wifiControlBlock.wifiRecvExecutor.execute(new WiFiRecvTask(wifiControlBlock));
     }
-    public void initParameter(){
-        lteState.lteBaseProbeGap = 300;
-        lteState.probeScale = 200;
-        lteState.probeStep = 10;
-    }
+
     public void stopSendPkt(){
-        if(lteProbeThread != null){
-            lteProbeThread.interrupt();
-            lteProbeThread = null;
-        }
-        if(wifiProbeThread != null){
-            wifiProbeThread.interrupt();
-            wifiProbeThread = null;
-        }
-        if(lteListenAndSend != null){
-            lteListenAndSend .interrupt();
-            lteListenAndSend = null;
-        }
-        if(wifiListenAndSend != null){
-            wifiListenAndSend.interrupt();
-            wifiListenAndSend = null;
-        }
-        isStartNow = false;
-        initParameter();
+        wifiControlBlock.endSign = true;
+        wifiControlBlock.wifiProbeExecutor.shutdownNow();
+        wifiControlBlock.wifiRecvExecutor.shutdownNow();
+        wifiControlBlock.wifiDataExecutor.shutdownNow();
+        wifiControlBlock.wifiAckAndNakExecutor.shutdownNow();
+        wifiControlBlock.wifiPTOExecutor.shutdownNow();
     }
 
     //测试wifi udp性能
-    public void testWiFiPath(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
+    public void testWiFiUDP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
         if(isStartNow){
             return;
         }
@@ -460,7 +476,7 @@ public class SocketService {
         final DatagramSocket wifiSocket = this.getUdpSocket();
         apiInstance.bindWifiSocket(wifiSocket);
         sleep(3000);
-        wifiListenAndSend = new Thread(new Runnable() {
+        Thread udpThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 System.out.println("running wifi");
@@ -474,7 +490,6 @@ public class SocketService {
                         byte[] sendData =  DataUtils.byteMerger(probeHdr.toByteArray(),realData);
                         DatagramPacket packet = new DatagramPacket(sendData,sendData.length,address,dstPort);
                         wifiSocket.send(packet);
-                       // sleep(1000);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -482,9 +497,8 @@ public class SocketService {
                 wifiSocket.close();
             }
         });
-        wifiListenAndSend.start();
+        udpThread.start();
     }
-
 
     //测试lte udp性能
     public void testLtePath(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
@@ -496,40 +510,39 @@ public class SocketService {
         final DatagramSocket lteSocket = this.getUdpSocket();
         apiInstance.bindCellularSocket(lteSocket);
         sleep(3000);
-        lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡发送数据包
-            @Override
-            public void run() {
-                System.out.println("running wifi");
-                SplbHdr probeHdr = new SplbHdr(PacketType.DATAPKG,(byte)1,0,1,1);
-                byte[] realData = new byte[512];
-                for (int i = 0; i < realData.length; i++) {
-                    realData[i] = 1;
-                }
-                try {
-                    while(!Thread.currentThread().isInterrupted()){
-                        byte[] sendData =  DataUtils.byteMerger(probeHdr.toByteArray(),realData);
-                        DatagramPacket packet = new DatagramPacket(sendData,sendData.length,address,dstPort);
-                        lteSocket.send(packet);
-                        probeHdr.pathSeq++;
-                        probeHdr.dataSeq++;
-                        // sleep(1000);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-               lteSocket.close();
-            }
-        });
-        lteListenAndSend.start();
+//        lteListenAndSend = new Thread(new Runnable() { //启动线程在lte网卡发送数据包
+//            @Override
+//            public void run() {
+//                System.out.println("running lte");
+//                SplbHdr probeHdr = new SplbHdr(PacketType.DATAPKG,(byte)0,0,1,1);
+//                byte[] realData = new byte[512];
+//                for (int i = 0; i < realData.length; i++) {
+//                    realData[i] = 1;
+//                }
+//                try {
+//                    while(!Thread.currentThread().isInterrupted()){
+//                        byte[] sendData =  DataUtils.byteMerger(probeHdr.toByteArray(),realData);
+//                        DatagramPacket packet = new DatagramPacket(sendData,sendData.length,address,dstPort);
+//                        lteSocket.send(packet);
+//                        probeHdr.pathSeq++;
+//                        probeHdr.dataSeq++;
+//                        // sleep(1000);
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//               lteSocket.close();
+//            }
+//        });
+//        lteListenAndSend.start();
     }
 
     //测试lte tcp性能
-    public void testLteTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
+    public void testWiFiTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
         if(isStartNow){
             return;
         }
-            //建立连接
-            lteProbeThread =  new Thread(new Runnable() {
+        Thread tcpThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     Socket socket = null;
@@ -556,6 +569,6 @@ public class SocketService {
                     }
                 }
             });
-        lteProbeThread.start();
+        tcpThread.start();
     }
 }

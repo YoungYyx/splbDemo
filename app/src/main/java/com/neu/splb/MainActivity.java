@@ -240,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("LTE链路性能测试已开始");
-            SocketService.getInstance().testLteTCP("47.95.28.241",18885);
+            SocketService.getInstance().testLtePath("47.95.28.241",18882);
 
 
         } catch (SocketException | InterruptedException |UnknownHostException e) {
@@ -253,7 +253,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("WiFi链路性能测试已开始");
-            SocketService.getInstance().testWiFiPath("47.95.28.241",18882);
+            SocketService.getInstance().testWiFiUDP("172.22.5.16",18885);
+           // SocketService.getInstance().testWiFiPath("47.95.28.241",18882);
 
         } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
