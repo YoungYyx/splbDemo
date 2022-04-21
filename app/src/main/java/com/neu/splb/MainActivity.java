@@ -40,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
 
     private static MyHandler handler;
 
+    private static final String yunIP = "47.95.28.241";
+
+    private static final String localIP = "172.22.5.16";
+
+    private static final int udpPort = 18885;
+
+    private static final int tcpPort = 18888;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -219,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式1已开始");
-            SocketService.getInstance().testSplbMode1("172.22.5.16",18882);
+            SocketService.getInstance().testSplbMode1(yunIP,18882);
         } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
             TextView textView = findViewById(R.id.recv_msg);
@@ -227,11 +235,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void testSplbMode2(){
+        try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式2已开始");
+            SocketService.getInstance().testSplbMode1("47.95.28.241",18882);
+        } catch (SocketException | InterruptedException | UnknownHostException e) {
+            e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("splb模式2启动失败");
+        }
     }
     private void testSplbMode3(){
-
+        try {
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("LTE链路TCP性能测试已开始");
+            SocketService.getInstance().testLteTCP("47.95.28.241",18888);
+        } catch (SocketException | InterruptedException |UnknownHostException e) {
+            e.printStackTrace();
+            TextView textView = findViewById(R.id.recv_msg);
+            textView.setText("LTE链路测试启动失败");
+        }
     }
     private void testSplbMode4(){
 
@@ -240,9 +263,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("LTE链路性能测试已开始");
-            SocketService.getInstance().testLtePath("47.95.28.241",18882);
-
-
+            SocketService.getInstance().testWiFiTCP(yunIP,18888);
         } catch (SocketException | InterruptedException |UnknownHostException e) {
             e.printStackTrace();
             TextView textView = findViewById(R.id.recv_msg);
@@ -253,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("WiFi链路性能测试已开始");
-            SocketService.getInstance().testWiFiUDP("172.22.5.16",18885);
+            SocketService.getInstance().testWiFiUDP(yunIP,udpPort);
            // SocketService.getInstance().testWiFiPath("47.95.28.241",18882);
 
         } catch (SocketException | InterruptedException | UnknownHostException e) {
