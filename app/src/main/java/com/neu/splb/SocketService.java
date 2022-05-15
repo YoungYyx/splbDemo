@@ -17,14 +17,17 @@ import java.util.Arrays;
 
 public class SocketService {
     private volatile boolean endSign = false;
-    public void testSplbMode1(String IP,int dstPort) throws UnknownHostException, SocketException, InterruptedException {
+    public void testSplbMode(String IP,int dstPort) throws UnknownHostException, SocketException, InterruptedException {
         SPLBSocket socket = new SPLBSocket();
         socket.connect(IP,dstPort);
+        byte[] data = new byte[512];
+        Arrays.fill(data,(byte)1);
         Thread splbThread = new Thread(() -> {
             while (!endSign){
-
+                socket.sendData(data);
             }
         });
+        splbThread.start();
     }
 
     public void stopSendPkt(){
@@ -80,7 +83,7 @@ public class SocketService {
             byte[] realData = new byte[512];
             Arrays.fill(realData, (byte) 1);
             try {
-                while(!Thread.currentThread().isInterrupted()){
+                while(!endSign){
                     byte[] sendData =  DataUtils.byteMerger(probeHdr.toByteArray(),realData);
                     DatagramPacket packet = new DatagramPacket(sendData,sendData.length,address,dstPort);
                     lteSocket.send(packet);

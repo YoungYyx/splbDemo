@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式1已开始");
-            new SocketService().testSplbMode1(yunIP,18882);
+            new SocketService().testSplbMode(yunIP,18882);
         } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
             TextView textView = findViewById(R.id.recv_msg);
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             TextView textView = findViewById(R.id.recv_msg);
             textView.setText("splb模式2已开始");
-            new SocketService().testSplbMode1(localIP,18880);
+            new SocketService().testSplbMode(localIP,18880);
         } catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
             TextView textView = findViewById(R.id.recv_msg);
