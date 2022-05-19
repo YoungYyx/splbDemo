@@ -3,12 +3,19 @@ package com.neu.splb;
 
 import static java.lang.Thread.sleep;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -20,11 +27,37 @@ public class SocketService {
     public void testSplbMode(String IP,int dstPort) throws UnknownHostException, SocketException, InterruptedException {
         SPLBSocket socket = new SPLBSocket();
         socket.connect(IP,dstPort);
-        byte[] data = new byte[512];
-        Arrays.fill(data,(byte)1);
+        
+       // Arrays.fill(data,(byte)1);
         Thread splbThread = new Thread(() -> {
+            File file = new File("/sdcard/Movies/test.mkv");
+            FileInputStream inputStream = null;
+            try {
+               inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] data = new byte[512];
+            int counter = 0;
             while (!endSign){
-                socket.sendData(data);
+                try {
+                    int len = inputStream.read(data);
+                    if(len > 0){
+                        counter++;
+                     //   System.out.println(counter + "," + data[0] + ":"+ data[len-1]);
+                        boolean sendSuccess = false;
+                        do{
+                            sendSuccess = socket.sendData(data,len);
+                        }while (!sendSuccess);
+
+                    }else if(len == -1){
+                        socket.disConnect();
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
         });
         splbThread.start();
@@ -99,25 +132,44 @@ public class SocketService {
 
     //测试lte tcp性能
     public void testWiFiTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
-
+        System.out.println("start");
         Thread tcpThread = new Thread(() -> {
-
-            byte[] realData = new byte[512];
-            Arrays.fill(realData, (byte) 1);
-            Socket socket = null;
-            OutputStream os = null;
+            File file = new File("/sdcard/Movies/test.mkv");
+            FileInputStream inputStream = null;
             try {
-                socket = new Socket(IP, dstPort);
+                inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] data = new byte[512];
+
+            Socket socket = new Socket();
+            OutputStream os = null;
+            AndroidAPITest.getInstance().bindWifiSocket(socket);
+            try {
+                sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            try {
+                InetAddress address = InetAddress.getByName(IP);
+                InetSocketAddress isa = new InetSocketAddress(address,dstPort);
+                socket.connect(isa);
                 os = socket.getOutputStream();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             int counter = 0;
-            while(counter < 1000000){
+            while(!endSign){
                 try {
-                    os.write(DataUtils.byteMerger(new SplbHdr(PacketType.DATAPKG,(byte)0,0,0,1).toByteArray(),realData));
-                    os.flush();
-                    counter++;
+                    int len = inputStream.read(data);
+                    if(len > 0){
+                        counter++;
+                        os.write(data,0,len);
+
+                    }else if(len == -1){
+                        // socket.disConnect();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -136,23 +188,41 @@ public class SocketService {
     public void testLteTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
 
         Thread tcpThread = new Thread(() -> {
-            byte[] realData = new byte[512];
-            Arrays.fill(realData, (byte) 1);
-            Socket socket = null;
-            OutputStream os = null;
+            File file = new File("/sdcard/Movies/test.mkv");
+            FileInputStream inputStream = null;
             try {
-                socket = new Socket(IP, dstPort);
+                inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] data = new byte[512];
+            Socket socket = new Socket();
+            OutputStream os = null;
+            AndroidAPITest.getInstance().bindCellularSocket(socket);
+            try {
+                sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            try {
+                InetAddress address = InetAddress.getByName(IP);
+                InetSocketAddress isa = new InetSocketAddress(address,dstPort);
+                socket.connect(isa);
                 os = socket.getOutputStream();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             int counter = 0;
-            while(counter < 1000000){
+            while(!endSign){
                 try {
-                    if (os == null) throw new AssertionError();
-                    os.write(DataUtils.byteMerger(new SplbHdr(PacketType.DATAPKG,(byte)0,0,0,1).toByteArray(),realData));
-                    os.flush();
-                    counter++;
+                    int len = inputStream.read(data);
+                    if(len > 0){
+                        counter++;
+                        os.write(data,0,len);
+
+                    }else if(len == -1){
+                        // socket.disConnect();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

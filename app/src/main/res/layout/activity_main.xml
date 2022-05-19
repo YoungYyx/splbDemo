@@ -1,238 +1,152 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    android:orientation="vertical">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/line"
-        android:layout_width="match_parent"
+    <LinearLayout android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <Button
-            android:id="@+id/test_splb_mode1"
-            android:layout_width="0dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="30dp"
+        android:id="@+id/layout1">
+        <TextView
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_splb_mode1"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toStartOf="@id/guideline"
-            app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toTopOf="@id/line" />
+            android:text="选择待传输的文件:"/>
+        <Spinner android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner1"/>
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideline"
+
+    </LinearLayout>
+
+
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:id="@+id/layout2">
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="选择传输方式及场景:"/>
+
+        <LinearLayout android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.5" />
+            android:id="@+id/layout2_1">
 
-        <Button
-            android:id="@+id/stop_test_splb_mode1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_splb_mode1"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/line"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toTopOf="@id/line" />
+            <Spinner android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/spinner2"/>
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/spinner3"/>
 
-        <Button
-            android:id="@+id/test_splb_mode2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_splb_mode2"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toStartOf="@id/guideline"
-            app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/test_splb_mode1" />
+        </LinearLayout>
 
-        <Button
-            android:id="@+id/stop_test_splb_mode2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_splb_mode2"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/line"
-            app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode1" />
-        <Button
-            android:id="@+id/test_splb_mode3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_splb_mode3"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toStartOf="@id/guideline"
-            app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/test_splb_mode2" />
-
-        <Button
-            android:id="@+id/stop_test_splb_mode3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_splb_mode3"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/line"
-            app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode2" />
-        <Button
-            android:id="@+id/test_splb_mode4"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_splb_mode4"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toStartOf="@id/guideline"
-            app:layout_constraintStart_toStartOf="@id/line"
-            app:layout_constraintTop_toBottomOf="@id/test_splb_mode3" />
-
-        <Button
-            android:id="@+id/stop_test_splb_mode4"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_splb_mode4"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@id/line"
-            app:layout_constraintStart_toEndOf="@id/guideline"
-            app:layout_constraintTop_toBottomOf="@id/stop_test_splb_mode3" />
-
-<!--        <Button-->
-<!--            android:id="@+id/get_mobile_signal_level"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:onClick="handleClick"-->
-<!--            android:text="@string/get_mobile_signal_level"-->
-<!--            android:textAllCaps="false"-->
-<!--            app:layout_constraintEnd_toEndOf="@id/guideline"-->
-<!--            app:layout_constraintStart_toStartOf="@id/line"-->
-<!--            app:layout_constraintTop_toBottomOf="@id/register" />-->
-
-<!--        <Button-->
-<!--            android:id="@+id/get_wifi_signal_level"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:onClick="handleClick"-->
-<!--            android:text="@string/get_wifi_signal_level"-->
-<!--            android:textAllCaps="false"-->
-<!--            app:layout_constraintEnd_toEndOf="@id/line"-->
-<!--            app:layout_constraintStart_toEndOf="@id/guideline"-->
-<!--            app:layout_constraintTop_toBottomOf="@id/unregister" />-->
-
-<!--        <Button-->
-<!--            android:id="@+id/bind_to_mobile_interface"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:onClick="handleClick"-->
-<!--            android:text="@string/bind_to_mobile_interface"-->
-<!--            android:textAllCaps="false"-->
-<!--            app:layout_constraintEnd_toStartOf="@id/guideline"-->
-<!--            app:layout_constraintStart_toStartOf="@id/line"-->
-<!--            app:layout_constraintTop_toBottomOf="@id/get_mobile_signal_level" />-->
-
-<!--        <Button-->
-<!--            android:id="@+id/bind_to_wifi_interface"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:onClick="handleClick"-->
-<!--            android:text="@string/bind_to_wifi_interface"-->
-<!--            android:textAllCaps="false"-->
-<!--            app:layout_constraintEnd_toEndOf="@id/line"-->
-<!--            app:layout_constraintStart_toEndOf="@id/guideline"-->
-<!--            app:layout_constraintTop_toBottomOf="@id/get_wifi_signal_level" />-->
-    </androidx.constraintlayout.widget.ConstraintLayout>
-        <Button
-            android:id="@+id/test_lte_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_lte_mode"
-            android:textAllCaps="false"
-            app:layout_constraintTop_toBottomOf="@id/line" />
-        <Button
-            android:id="@+id/stop_test_lte_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_lte_mode"
-            android:textAllCaps="false"
-            app:layout_constraintTop_toBottomOf="@id/test_lte_mode" />
-        <Button
-            android:id="@+id/test_wifi_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/test_wifi_mode"
-            android:textAllCaps="false"
-            app:layout_constraintTop_toBottomOf="@id/stop_test_lte_mode" />
-        <Button
-            android:id="@+id/stop_test_wifi_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="handleClick"
-            android:text="@string/stop_test_wifi_mode"
-            android:textAllCaps="false"
-            app:layout_constraintTop_toBottomOf="@id/test_wifi_mode" />
-<!--    <Button-->
-<!--        android:id="@+id/get_available_net_interface"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:onClick="handleClick"-->
-<!--        android:text="@string/get_available_net_interface"-->
-<!--        android:textAllCaps="false"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/line" />-->
-
-<!--    <Button-->
-<!--        android:id="@+id/get_traffic_state"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:onClick="handleClick"-->
-<!--        android:text="@string/get_traffic_state"-->
-<!--        android:textAllCaps="false"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/get_available_net_interface" />-->
-
-<!--    <Button-->
-<!--        android:id="@+id/test_website"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:onClick="handleClick"-->
-<!--        android:text="@string/test_website"-->
-<!--        android:textAllCaps="false"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/get_traffic_state" />-->
+    </LinearLayout>
 
 
-<!--    <Button-->
-<!--        android:id="@+id/test_udp_socket"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:onClick="handleClick"-->
-<!--        android:text="@string/test_udp_socket"-->
-<!--        android:textAllCaps="false"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/test_website" />-->
-    <TextView
-        android:id="@+id/recv_msg"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/recv_msg"
-        app:layout_constraintTop_toBottomOf="@id/stop_test_wifi_mode" />
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:id="@+id/layout3">
+        <TextView
+            android:text="云服务器IP地址："
+            android:layout_width="120dp"
+            android:layout_height="30dp" android:id="@+id/textView" tools:layout_editor_absoluteY="236dp"
+            tools:layout_editor_absoluteX="26dp"/>
+        <EditText
+            android:layout_width="200dp"
+            android:layout_height="40dp"
+            tools:layout_editor_absoluteY="236dp"
+            tools:layout_editor_absoluteX="153dp"
+            android:id="@+id/editText3"
+            android:hint="TCP"/>
+    </LinearLayout>
 
-    <WebView
-        android:id="@+id/webview"
-        android:layout_width="match_parent"
+    <LinearLayout android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/recv_msg">
-    </WebView>
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:id="@+id/layout4">
+        <TextView
+            android:text="目标手机IP地址："
+            android:layout_width="120dp"
+            android:layout_height="30dp" android:id="@+id/textView2" tools:layout_editor_absoluteY="325dp"
+            tools:layout_editor_absoluteX="26dp"/>
+        <LinearLayout android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:id="@+id/layout4_1">
+            <EditText
+                android:layout_width="200dp"
+                android:layout_height="40dp"
+                tools:layout_editor_absoluteY="315dp"
+                tools:layout_editor_absoluteX="153dp"
+                android:id="@+id/editText"
+                android:hint="WIFI"/>
+            <EditText
+                android:layout_width="200dp"
+                android:layout_height="40dp"
+                tools:layout_editor_absoluteY="387dp"
+                tools:layout_editor_absoluteX="153dp"
+                android:id="@+id/editText2"
+                android:hint="LTE(IPv4/IPv6)"/>
+        </LinearLayout>
 
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="50dp"
+        android:id="@+id/layout5">
+        <Button
+            android:text="传输开始"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/button1" tools:layout_editor_absoluteY="550dp"
+            android:layout_marginLeft="35dp"/>
+        <Button
+            android:text="单次传输"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/buttonTrx" tools:layout_editor_absoluteY="550dp"
+            android:layout_marginLeft="20dp"/>
+        <Button
+            android:text="传输停止"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button2" tools:layout_editor_absoluteY="550dp"
+            android:layout_marginLeft="20dp"/>
+    </LinearLayout>
+
+    <TextView android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:text="传输状态信息"
+        android:id="@+id/debug1"/>
+    <TextView android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:text="传输数据信息"
+        android:id="@+id/debug2"/>
+
+
+
+</LinearLayout>
