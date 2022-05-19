@@ -26,7 +26,9 @@ enum PacketType{
     PROBEPKG((byte)1),  //探测包
     ACKPKG((byte)2),    //ACK报文
     NAKPKG((byte)3),   //NAK报文
-    RETRANS((byte)4);   //重传包
+    RETRANS((byte)4),   //重传包
+    FIN((byte)5),
+    PTO((byte)6);
 
     public byte t;
 
@@ -83,6 +85,8 @@ class SplbHdr{
                 this.type = PacketType.NAKPKG;break;
             case (byte)4:
                 this.type = PacketType.RETRANS;break;
+            case (byte)5:
+                this.type = PacketType.FIN;break;
         }
         this.pathNum = byteBuffer.get();
 
@@ -105,6 +109,12 @@ class SplbHdr{
  * 获取发送数据的工具类
  * */
 class DataUtils{
+    public static byte[] byteMerger(byte[] bt1, byte[] bt2,int len){
+        byte[] bt3 = new byte[bt1.length + len];
+        System.arraycopy(bt1, 0, bt3, 0, bt1.length);
+        System.arraycopy(bt2, 0, bt3, bt1.length, len);
+        return bt3;
+    }
     public static byte[] byteMerger(byte[] bt1, byte[] bt2){
         byte[] bt3 = new byte[bt1.length+bt2.length];
         System.arraycopy(bt1, 0, bt3, 0, bt1.length);
@@ -116,21 +126,23 @@ class DataUtils{
 class DataBlock{
     int dataSeq;
     byte[] data;
-    DataBlock(int dataSeq,byte[] data){
+    DataBlock(int dataSeq,byte[] data,int len){
         this.dataSeq = dataSeq;
-        this.data = DataUtils.byteMerger(new byte[22] ,data);
+        this.data = DataUtils.byteMerger(new byte[22],data,len);
     }
 }
 
 class DataBuffer{
-    private AtomicInteger seqCounter = new AtomicInteger(0);
+    private AtomicInteger seqCounter = new AtomicInteger(1);
     public ConcurrentLinkedQueue<DataBlock> buffer = new ConcurrentLinkedQueue<>();
-
-    public boolean pushData(byte[] data){
+    public int getEndSeq(){
+        return seqCounter.get();
+    }
+    public boolean pushData(byte[] data,int len){
         if(buffer.size() > 1000){
             return false;
         }else{
-            DataBlock dataBlock = new DataBlock(seqCounter.getAndIncrement(), data);
+            DataBlock dataBlock = new DataBlock(seqCounter.getAndIncrement(), data, len);
             buffer.add(dataBlock);
             return true;
         }
@@ -144,6 +156,7 @@ class DataBuffer{
 
 
 class SockControlBlock{
+    public boolean fin = false;
     public boolean endSign = false;
     public boolean lostState = false;
     public int pacingGap;   //探测包基础间隔, us
@@ -163,11 +176,13 @@ class SockControlBlock{
     public long lastPTOTimeStamp = 0;
     public long dataNextToSend = 0;
     public  int cwnd = 400;
+    public int endPSN;
     public long lastUpdateBwTimeStamp;
     public BBRState state;
-    public double[] pacingGain = {5/4, 3/4, 1, 1, 1, 1, 1, 1};
+    public double[] pacingGain = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
     public long cycleTimeStamp;
     public int pindex = 0;
+    public int bwCounter = 0;
     public DataBuffer dataBuffer;
     public ConcurrentHashMap<Integer,DataBlock> dataMap;
     public ConcurrentLinkedQueue<Integer> windowList;
@@ -175,6 +190,7 @@ class SockControlBlock{
     public ExecutorService recvExecutor;
     public ExecutorService dataExecutor;
     public ExecutorService ackAndNakExecutor;
+    public ExecutorService ptoExecutor;
 
     public SockControlBlock(DatagramSocket socket, InetAddress dstIP, int dstPort, DataBuffer buffer) {
         this.socket = socket;
@@ -188,24 +204,25 @@ class SockControlBlock{
         recvExecutor = Executors.newSingleThreadExecutor();
         dataExecutor = Executors.newSingleThreadExecutor();
         ackAndNakExecutor = Executors.newSingleThreadExecutor();
+        ptoExecutor = Executors.newSingleThreadExecutor();
     }
 
     public void initLTESockControlBlock(){
-        this.pacingGap = 150;
-        this.minPacingGap = 100;
+        this.pacingGap = 1000;
+        this.minPacingGap = 10;
         this.probeScale = 200;
         this.probeStep = 10;
-
+        this.state = BBRState.STARTUP;
     }
 
     public void initWifiSockControlBlock(){
         this.pacingGap = 1000;
-        this.minPacingGap = 500;
+        this.minPacingGap = 10;
         this.probeScale = 200;
         this.probeStep = 10;
+        this.state = BBRState.STARTUP;
     }
 }
-
 
 class LTEProbeTask implements Runnable{
 
@@ -217,15 +234,15 @@ class LTEProbeTask implements Runnable{
 
     @Override
     public void run() {
-        System.out.println("running wifi probe");
-        SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)0,1,0,0);
+        System.out.println("running lte probe");
+        SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)1,1,0,0);
         try {
-            while(!Thread.currentThread().isInterrupted()){
+            while(!lteControlBlock.fin){
                 probeHdr.timeStamp = System.nanoTime();
                 byte[] probe = probeHdr.toByteArray();
                 DatagramPacket packet = new DatagramPacket(probe,probe.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
                 lteControlBlock.socket.send(packet);
-                TimeUnit.MICROSECONDS.sleep((long) lteControlBlock.pacingGap * lteControlBlock.probeScale);
+                TimeUnit.MICROSECONDS.sleep(lteControlBlock.pacingGap * lteControlBlock.probeScale);
                 probeHdr.probeSeq++;
             }
         } catch (IOException | InterruptedException e) {
@@ -258,8 +275,9 @@ class LTERecvTask implements Runnable{
                 {
                     LTEDataTask dataTask = new LTEDataTask(hdr,lteControlBlock,timeStamp);
                     lteControlBlock.dataExecutor.execute(dataTask);
-                }
-                else{
+                } else if(hdr.type == PacketType.FIN){
+                    lteControlBlock.endSign = true;
+                }else{
                     LTEAckAndNakTask ackAndNakTask = new LTEAckAndNakTask(hdr,lteControlBlock,timeStamp);
                     lteControlBlock.ackAndNakExecutor.execute(ackAndNakTask);
                 }
@@ -276,14 +294,16 @@ class LTEDataTask implements Runnable{
     SockControlBlock lteControlBlock;
     long timeStamp;
 
-    LTEDataTask(SplbHdr hdr,SockControlBlock controlBlock,long timeStamp){
+    LTEDataTask(SplbHdr hdr,SockControlBlock lteControlBlock,long timeStamp){
         super();
         this.timeStamp  = timeStamp;
-        this.lteControlBlock = controlBlock;
+        this.lteControlBlock = lteControlBlock;
         this.hdr = hdr;
     }
     @Override
     public void run() {
+
+        updateBW();
         int rtt = (int) ((timeStamp - hdr.timeStamp)/ 1000);// 转换微秒
         if(lteControlBlock.srtt == 0){
             lteControlBlock.srtt = rtt;
@@ -293,39 +313,93 @@ class LTEDataTask implements Runnable{
         lteControlBlock.timeThreshold = (long) (lteControlBlock.srtt * 1.5);
         int dataCounter = 0;
         while(!lteControlBlock.endSign && dataCounter <= lteControlBlock.probeScale){
-            if(lteControlBlock.lostState || ( lteControlBlock.windowList.size() > lteControlBlock.cwnd)){
-                continue;
-            }
-            long now = System.nanoTime();
-            if (now >= lteControlBlock.dataNextToSend || lteControlBlock.dataNextToSend == 0) {
-                DataBlock dataBlock = lteControlBlock.dataBuffer.popData();
-                if(dataBlock == null){
+            if (!lteControlBlock.lostState && ( lteControlBlock.windowList.size() <= lteControlBlock.cwnd )) {
+                long now = System.nanoTime();
+                if (now < lteControlBlock.dataNextToSend && lteControlBlock.dataNextToSend != 0) {
                     continue;
-                }else{
-                    dataCounter++;
-                    byte[] dataToSend = dataBlock.data;
-                    int PSN = lteControlBlock.pathSeq.getAndIncrement();
-                    ByteBuffer bbuffer = ByteBuffer.wrap(dataBlock.data);
-                    bbuffer.putLong(now);
-                    bbuffer.putInt(hdr.probeSeq);
-                    bbuffer.putInt(PSN);
-                    bbuffer.putInt(dataBlock.dataSeq);
-                    bbuffer.put((byte)0);
-                    bbuffer.put((byte)0);
-                    lteControlBlock.dataNextToSend = now + lteControlBlock.pacingGap* 1000L;
-                    DatagramPacket sendPacket = new DatagramPacket(dataToSend,dataToSend.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
-                    try {
-                        lteControlBlock.socket.send(sendPacket);
-                        lteControlBlock.windowList.add(PSN);
-                        lteControlBlock.dataMap.put(PSN,dataBlock);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                } else {
+                    DataBlock dataBlock = lteControlBlock.dataBuffer.popData();
+                    if(dataBlock == null){
+                        if(lteControlBlock.fin){
+                            int EPSN = lteControlBlock.endPSN == 0 ? lteControlBlock.pathSeq.getAndIncrement():lteControlBlock.endPSN;
+                            lteControlBlock.endPSN = EPSN;
+                            int endSeq = lteControlBlock.dataBuffer.getEndSeq();
+                            SplbHdr finHdr = new SplbHdr(PacketType.FIN,(byte)0,0,EPSN,endSeq);
+                            byte[] dataToSend = finHdr.toByteArray();
+                            lteControlBlock.dataNextToSend = now + lteControlBlock.pacingGap* 1000L;
+                            DatagramPacket sendPacket = new DatagramPacket(dataToSend,dataToSend.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
+                            try {
+                                lteControlBlock.socket.send(sendPacket);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }else{
+                            continue;
+                        }
+                    }else{
+                        dataCounter++;
+                        byte[] dataToSend = dataBlock.data;
+                        int PSN = lteControlBlock.pathSeq.getAndIncrement();
+                        ByteBuffer bbuffer = ByteBuffer.wrap(dataToSend);
+                        bbuffer.putLong(now);
+                        bbuffer.putInt(hdr.probeSeq);
+                        bbuffer.putInt(PSN);
+                        bbuffer.putInt(dataBlock.dataSeq);
+                        bbuffer.put((byte)0);
+                        bbuffer.put((byte)0);
+                        lteControlBlock.dataNextToSend = now + lteControlBlock.pacingGap* 1000L;
+                        DatagramPacket sendPacket = new DatagramPacket(dataToSend,dataToSend.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
+                        try {
+                            lteControlBlock.socket.send(sendPacket);
+                            lteControlBlock.windowList.add(PSN);
+                            lteControlBlock.dataMap.put(PSN,dataBlock);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-
             }
         }
     }
+
+    public void updateBW(){
+        double gain = 1.5;
+        int newGap = hdr.dataSeq;
+        if (newGap == 0 || newGap == lteControlBlock.pacingGap) {
+            return;
+        } else {
+            // System.out.println("newgap:"+newGap);
+            if (lteControlBlock.state == BBRState.STARTUP) {
+                gain = lteControlBlock.pacingGap / newGap;
+                //System.out.println(lteControlBlock.pacingGap + ","+newGap+",gain:"+gain);
+                if (gain > 1.1) {
+                    lteControlBlock.pacingGap = (int) ( newGap / 1.5 );
+                } else {
+                    lteControlBlock.pacingGap = (int) (newGap/1.25);
+                    lteControlBlock.state = BBRState.DRAIN;
+                }
+            } else if (lteControlBlock.state == BBRState.DRAIN) {
+                drainToTarget();
+                lteControlBlock.state = BBRState.PROBW;
+                lteControlBlock.cycleTimeStamp = System.nanoTime();
+            } else {
+                newGap = (int)(newGap / gain);
+                long nowTime = System.nanoTime();
+                int elapsedUS = (int) ( ( nowTime - lteControlBlock.cycleTimeStamp ) / 1000 );
+                if (elapsedUS > lteControlBlock.srtt) {
+                    lteControlBlock.pindex = ( lteControlBlock.pindex + 1 ) % 8;
+                    lteControlBlock.cycleTimeStamp = nowTime;
+                }
+                double pacing_gain = lteControlBlock.pacingGain[lteControlBlock.pindex];
+                lteControlBlock.pacingGap = (int) ( newGap / pacing_gain );
+            }
+        }
+    }
+
+    public void drainToTarget(){
+
+    }
+
 }
 
 
@@ -352,6 +426,7 @@ class LTEAckAndNakTask implements Runnable{
         lteControlBlock.timeThreshold = lteControlBlock.srtt * 2L + (long) lteControlBlock.kPackets * lteControlBlock.pacingGap;
         Integer ackedSeq = hdr.pathSeq;
         Integer wantedSeq = hdr.dataSeq;
+       // System.out.println(hdr.type+","+ ackedSeq + ","+wantedSeq);
         ConcurrentLinkedQueue<Integer> wList = lteControlBlock.windowList;
         ConcurrentHashMap<Integer, DataBlock> dataMap = lteControlBlock.dataMap;
 
@@ -366,26 +441,32 @@ class LTEAckAndNakTask implements Runnable{
             if (wList.contains(ackedSeq)){
                 wList.remove(ackedSeq);
                 dataMap.remove(ackedSeq);
-                if(ackedSeq - wantedSeq < lteControlBlock.kPackets){
-                    return;
-                }else{
+                if(ackedSeq - wantedSeq > lteControlBlock.kPackets){
                     lteControlBlock.lostState = true;
                 }
                 if(lteControlBlock.lostState){
-                    Iterator<Integer> iterator = wList.iterator();
-                    while(iterator.hasNext()){
-                        Integer next = iterator.next();
-                        int lostPathSeq = next.intValue();
-                        if(lostPathSeq <= lteControlBlock.lastRetransSeq){
+                    for (Integer next : wList) {
+                        int lostPathSeq = next;
+                        if (lostPathSeq <= lteControlBlock.lastRetransSeq) {
                             continue;
                         }
-                        DataBlock lostData = dataMap.get(next);
-                        if(lostData == null) continue;
-                        SplbHdr retransHdr = new SplbHdr(PacketType.RETRANS, (byte) 0, hdr.probeSeq, lostPathSeq, lostData.dataSeq);
-                        retransHdr.timeStamp = System.nanoTime();
-                        byte[] sendData = DataUtils.byteMerger(retransHdr.toByteArray(), lostData.data);
+                        if(lostPathSeq > ackedSeq){
+                            break;
+                        }
+                        DataBlock lostData = dataMap.get(lostPathSeq);
+                        if (lostData == null) continue;
+                        byte[] sendData = lostData.data;
+                        ByteBuffer bbuffer = ByteBuffer.wrap(sendData);
+                        long now =  System.nanoTime();
+                        bbuffer.putLong(now);
+                        bbuffer.putInt(hdr.probeSeq);
+                        bbuffer.putInt(lostPathSeq);
+                        bbuffer.putInt(lostData.dataSeq);
+                        bbuffer.put((byte)4);
+                        bbuffer.put((byte)0);
                         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, lteControlBlock.dstIP, lteControlBlock.dstPort);
                         try {
+                            // System.out.println("acked:"+ackedSeq+"retrans:" + lostPathSeq);
                             lteControlBlock.socket.send(sendPacket);
                             lteControlBlock.lastRetransSeq = lostPathSeq;
                         } catch (IOException e) {
@@ -396,38 +477,59 @@ class LTEAckAndNakTask implements Runnable{
                 }
             }
         }
-
-        long cur = System.nanoTime();
-        long rtogap = Math.min((cur - lteControlBlock.lastAckTimeStamp),(cur - lteControlBlock.lastPTOTimeStamp))/1000;
-        if(rtogap >= lteControlBlock.timeThreshold){
-            Iterator<Integer> iterator = wList.iterator();
-            int counter = 0;
-            while(iterator.hasNext()){
-                Integer lost = iterator.next();
-                DataBlock lostData = dataMap.get(lost);
-                if(lostData==null){
-                    continue;
-                }
-                if(counter==10){
-                    break;
-                }
-                SplbHdr retransHdr = new SplbHdr(PacketType.RETRANS,(byte)0,0,lost.intValue(),lostData.dataSeq);
-                retransHdr.timeStamp = System.nanoTime();
-                byte[] sendData =  DataUtils.byteMerger(retransHdr.toByteArray(),lostData.data);
-                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
-                try {
-                    lteControlBlock.socket.send(sendPacket);
-                    counter++;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            lteControlBlock.lastPTOTimeStamp = System.nanoTime();
-        }
-
     }
 }
 
+
+class LTEPTOTask implements Runnable{
+
+    SockControlBlock lteControlBlock;
+    ConcurrentLinkedQueue<Integer> wList;
+    ConcurrentHashMap<Integer, DataBlock> dataMap;
+
+    LTEPTOTask(SockControlBlock lteControlBlock){
+        this.lteControlBlock = lteControlBlock;
+        wList = lteControlBlock.windowList;
+        dataMap = lteControlBlock.dataMap;
+    }
+
+    @Override
+    public void run() {
+        while(!lteControlBlock.endSign){
+            long cur = System.nanoTime();
+            long rtogap = Math.min((cur - lteControlBlock.lastAckTimeStamp),(cur - lteControlBlock.lastPTOTimeStamp))/1000;
+            if(rtogap >= lteControlBlock.timeThreshold){
+                Iterator<Integer> iterator = wList.iterator();
+                int counter = 0;
+                while(iterator.hasNext()){
+                    Integer lost = iterator.next();
+                    DataBlock lostData = dataMap.get(lost);
+                    if(lostData==null){
+                        continue;
+                    }
+                    if(counter==10) break;
+                    byte[] sendData = lostData.data;
+                    ByteBuffer bbuffer = ByteBuffer.wrap(sendData);
+                    long now =  System.nanoTime();
+                    bbuffer.putLong(now);
+                    bbuffer.putInt(0);
+                    bbuffer.putInt(lost);
+                    bbuffer.putInt(lostData.dataSeq);
+                    bbuffer.put((byte)4);
+                    bbuffer.put((byte)0);
+                    DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,lteControlBlock.dstIP,lteControlBlock.dstPort);
+                    try {
+                        lteControlBlock.socket.send(sendPacket);
+                        counter++;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                lteControlBlock.lastPTOTimeStamp = System.nanoTime();
+            }
+        }
+    }
+}
 
 class WiFiProbeTask implements Runnable{
 
@@ -442,7 +544,7 @@ class WiFiProbeTask implements Runnable{
         System.out.println("running wifi probe");
         SplbHdr probeHdr = new SplbHdr(PacketType.PROBEPKG,(byte)1,1,0,0);
         try {
-            while(!Thread.currentThread().isInterrupted()){
+            while(!wifiControlBlock.fin){
                 probeHdr.timeStamp = System.nanoTime();
                 byte[] probe = probeHdr.toByteArray();
                 DatagramPacket packet = new DatagramPacket(probe,probe.length,wifiControlBlock.dstIP,wifiControlBlock.dstPort);
@@ -480,8 +582,9 @@ class WiFiRecvTask implements Runnable{
                 {
                     WiFiDataTask dataTask = new WiFiDataTask(hdr,wifiControlBlock,timeStamp);
                     wifiControlBlock.dataExecutor.execute(dataTask);
-                }
-                else{
+                } else if(hdr.type == PacketType.FIN){
+                    wifiControlBlock.endSign = true;
+                }else{
                     WiFiAckAndNakTask ackAndNakTask = new WiFiAckAndNakTask(hdr,wifiControlBlock,timeStamp);
                     wifiControlBlock.ackAndNakExecutor.execute(ackAndNakTask);
                 }
@@ -506,6 +609,7 @@ class WiFiDataTask implements Runnable{
     }
     @Override
     public void run() {
+
         updateBW();
         int rtt = (int) ((timeStamp - hdr.timeStamp)/ 1000);// 转换微秒
         if(wifiControlBlock.srtt == 0){
@@ -523,7 +627,22 @@ class WiFiDataTask implements Runnable{
                 } else {
                     DataBlock dataBlock = wifiControlBlock.dataBuffer.popData();
                     if(dataBlock == null){
-                        continue;
+                        if(wifiControlBlock.fin){
+                            int EPSN = wifiControlBlock.endPSN == 0 ? wifiControlBlock.pathSeq.getAndIncrement():wifiControlBlock.endPSN;
+                            wifiControlBlock.endPSN = EPSN;
+                            int endSeq = wifiControlBlock.dataBuffer.getEndSeq();
+                            SplbHdr finHdr = new SplbHdr(PacketType.FIN,(byte)1,0,EPSN,endSeq);
+                            byte[] dataToSend = finHdr.toByteArray();
+                            wifiControlBlock.dataNextToSend = now + wifiControlBlock.pacingGap* 1000L;
+                            DatagramPacket sendPacket = new DatagramPacket(dataToSend,dataToSend.length,wifiControlBlock.dstIP,wifiControlBlock.dstPort);
+                            try {
+                                wifiControlBlock.socket.send(sendPacket);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }else{
+                            continue;
+                        }
                     }else{
                         dataCounter++;
                         byte[] dataToSend = dataBlock.data;
@@ -551,34 +670,41 @@ class WiFiDataTask implements Runnable{
     }
 
     public void updateBW(){
+        double gain = 1.6;
         int newGap = hdr.dataSeq;
-        if(newGap == 0){
+        if (newGap == 0 || newGap == wifiControlBlock.pacingGap) {
             return;
-        }else if(wifiControlBlock.state == BBRState.STARTUP){
-            double gain = wifiControlBlock.pacingGap / newGap;
-            if(gain > 1.1){
-                wifiControlBlock.pacingGap =  (int)(newGap / 1.5);
-            }else{
-                wifiControlBlock.state = BBRState.DRAIN;
+        } else {
+            if (wifiControlBlock.state == BBRState.STARTUP) {
+                gain = wifiControlBlock.pacingGap / newGap;
+                if (gain > 1.1) {
+                    wifiControlBlock.pacingGap = (int) ( newGap / 1.5 );
+                } else {
+                    wifiControlBlock.pacingGap = (int) (newGap/1.25);
+                    wifiControlBlock.state = BBRState.DRAIN;
+                }
+            } else if (wifiControlBlock.state == BBRState.DRAIN) {
+                drainToTarget();
+                wifiControlBlock.state = BBRState.PROBW;
+                wifiControlBlock.cycleTimeStamp = System.nanoTime();
+            } else {
+                newGap  = (int) (newGap/gain);
+                long nowTime = System.nanoTime();
+                int elapsedUS = (int) ( ( nowTime - wifiControlBlock.cycleTimeStamp ) / 1000 );
+                if (elapsedUS > wifiControlBlock.srtt) {
+                    wifiControlBlock.pindex = ( wifiControlBlock.pindex + 1 ) % 8;
+                    wifiControlBlock.cycleTimeStamp = nowTime;
+                }
+                double pacing_gain = wifiControlBlock.pacingGain[wifiControlBlock.pindex];
+
+                wifiControlBlock.pacingGap = (int) ( newGap / pacing_gain );
+                //System.out.println(wifiControlBlock.pacingGap);
             }
-        }else if(wifiControlBlock.state == BBRState.DRAIN) {
-            drainToTarget();
-            wifiControlBlock.state = BBRState.PROBW;
-            wifiControlBlock.cycleTimeStamp = System.nanoTime();
-        }else{
-            long nowTime = System.nanoTime();
-            System.out.println(newGap);
-            int elapsedUS = (int)((nowTime - wifiControlBlock.cycleTimeStamp)/1000);
-            if(elapsedUS > wifiControlBlock.srtt){
-                wifiControlBlock.pindex = ( wifiControlBlock.pindex + 1) % 8;
-                wifiControlBlock.cycleTimeStamp = nowTime;
-            }
-            wifiControlBlock.pacingGap = (int) (newGap / wifiControlBlock.pacingGain[wifiControlBlock.pindex]);
         }
     }
 
     public void drainToTarget(){
-        wifiControlBlock.pacingGap = wifiControlBlock.srtt;
+
     }
 
 }
@@ -630,13 +756,23 @@ class WiFiAckAndNakTask implements Runnable{
                         if (lostPathSeq <= wifiControlBlock.lastRetransSeq) {
                             continue;
                         }
-                        DataBlock lostData = dataMap.get(next);
+                        if(lostPathSeq > ackedSeq){
+                            break;
+                        }
+                        DataBlock lostData = dataMap.get(lostPathSeq);
                         if (lostData == null) continue;
-                        SplbHdr retransHdr = new SplbHdr(PacketType.RETRANS, (byte) 1, hdr.probeSeq, lostPathSeq, lostData.dataSeq);
-                        retransHdr.timeStamp = System.nanoTime();
-                        byte[] sendData = DataUtils.byteMerger(retransHdr.toByteArray(), lostData.data);
+                        byte[] sendData = lostData.data;
+                        ByteBuffer bbuffer = ByteBuffer.wrap(sendData);
+                        long now =  System.nanoTime();
+                        bbuffer.putLong(now);
+                        bbuffer.putInt(hdr.probeSeq);
+                        bbuffer.putInt(lostPathSeq);
+                        bbuffer.putInt(lostData.dataSeq);
+                        bbuffer.put((byte)4);
+                        bbuffer.put((byte)1);
                         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, wifiControlBlock.dstIP, wifiControlBlock.dstPort);
                         try {
+                           // System.out.println("acked:"+ackedSeq+"retrans:" + lostPathSeq);
                             wifiControlBlock.socket.send(sendPacket);
                             wifiControlBlock.lastRetransSeq = lostPathSeq;
                         } catch (IOException e) {
@@ -647,35 +783,60 @@ class WiFiAckAndNakTask implements Runnable{
                 }
             }
         }
-
-        long cur = System.nanoTime();
-        long rtogap = Math.min((cur - wifiControlBlock.lastAckTimeStamp),(cur - wifiControlBlock.lastPTOTimeStamp))/1000;
-        if(rtogap >= wifiControlBlock.timeThreshold){
-            Iterator<Integer> iterator = wList.iterator();
-            int counter = 0;
-            while(iterator.hasNext()){
-                Integer lost = iterator.next();
-                DataBlock lostData = dataMap.get(lost);
-                if(lostData==null){
-                    continue;
-                }
-                if(counter==10) break;
-                SplbHdr retransHdr = new SplbHdr(PacketType.RETRANS,(byte)1,0, lost,lostData.dataSeq);
-                retransHdr.timeStamp = System.nanoTime();
-                byte[] sendData =  DataUtils.byteMerger(retransHdr.toByteArray(),lostData.data);
-                DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,wifiControlBlock.dstIP,wifiControlBlock.dstPort);
-                try {
-                    wifiControlBlock.socket.send(sendPacket);
-                    counter++;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            wifiControlBlock.lastPTOTimeStamp = System.nanoTime();
-        }
-
     }
 }
+
+
+class WiFiPTOTask implements Runnable{
+
+    SockControlBlock wifiControlBlock;
+    ConcurrentLinkedQueue<Integer> wList;
+    ConcurrentHashMap<Integer, DataBlock> dataMap;
+
+    WiFiPTOTask(SockControlBlock wifiControlBlock){
+        this.wifiControlBlock = wifiControlBlock;
+        wList = wifiControlBlock.windowList;
+        dataMap = wifiControlBlock.dataMap;
+    }
+
+    @Override
+    public void run() {
+        while(!wifiControlBlock.endSign){
+            long cur = System.nanoTime();
+            long rtogap = Math.min((cur - wifiControlBlock.lastAckTimeStamp),(cur - wifiControlBlock.lastPTOTimeStamp))/1000;
+            if(rtogap >= wifiControlBlock.timeThreshold){
+                Iterator<Integer> iterator = wList.iterator();
+                int counter = 0;
+                while(iterator.hasNext()){
+                    Integer lost = iterator.next();
+                    DataBlock lostData = dataMap.get(lost);
+                    if(lostData==null){
+                        continue;
+                    }
+                    if(counter==10) break;
+                    byte[] sendData = lostData.data;
+                    ByteBuffer bbuffer = ByteBuffer.wrap(sendData);
+                    long now =  System.nanoTime();
+                    bbuffer.putLong(now);
+                    bbuffer.putInt(0);
+                    bbuffer.putInt(lost);
+                    bbuffer.putInt(lostData.dataSeq);
+                    bbuffer.put((byte)4);
+                    bbuffer.put((byte)1);
+                    DatagramPacket sendPacket = new DatagramPacket(sendData,sendData.length,wifiControlBlock.dstIP,wifiControlBlock.dstPort);
+                    try {
+                        wifiControlBlock.socket.send(sendPacket);
+                        counter++;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                wifiControlBlock.lastPTOTimeStamp = System.nanoTime();
+            }
+        }
+    }
+}
+
 
 public class SPLBSocket {
 
@@ -696,29 +857,32 @@ public class SPLBSocket {
             final DatagramSocket wifiSocket = this.getUdpSocket();
             apiInstance.bindCellularSocket(lteSocket);
             apiInstance.bindWifiSocket(wifiSocket);
-            sleep(2000);
+            sleep(3000);
             InetAddress address = InetAddress.getByName(IP);
             this.databuffer = new DataBuffer();
             lteControlBlock = new SockControlBlock(lteSocket,address,dstPort,databuffer);
             lteControlBlock.initLTESockControlBlock();
             lteControlBlock.probeExecutor.execute(new LTEProbeTask(lteControlBlock));
             lteControlBlock.recvExecutor.execute(new LTERecvTask(lteControlBlock));
+            lteControlBlock.ptoExecutor.execute(new LTEPTOTask(lteControlBlock));
             wifiControlBlock = new SockControlBlock(wifiSocket,address,dstPort+1,databuffer);
             wifiControlBlock.initWifiSockControlBlock();
             wifiControlBlock.probeExecutor.execute(new WiFiProbeTask(wifiControlBlock));
             wifiControlBlock.recvExecutor.execute(new WiFiRecvTask(wifiControlBlock));
+            wifiControlBlock.ptoExecutor.execute(new WiFiPTOTask(wifiControlBlock));
         }catch (SocketException | InterruptedException | UnknownHostException e) {
             e.printStackTrace();
         }
     }
 
     public void disConnect(){
-
+        wifiControlBlock.fin = true;
+        lteControlBlock.fin = true;
     }
 
 
 
-    public boolean sendData(byte[] data){
-        return this.databuffer.pushData(data);
+    public boolean sendData(byte[] data,int len){
+        return this.databuffer.pushData(data,len);
     }
 }

@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.Socket;
 import java.net.SocketException;
 
 
@@ -77,8 +78,30 @@ public class AndroidAPITest {
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
-                    System.out.println("1-----"+network.toString());
                     network.bindSocket(wifiSocket);
+                    System.out.println("绑定wifi到"+network);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onUnavailable() {
+                super.onUnavailable();
+                System.out.println("1-----网络不可达");
+            }
+        });
+    }
+
+    //绑定到wifi网络的socket
+    public void bindWifiSocket(Socket socket){
+        ConnectivityManager man = getConManager();
+        man.requestNetwork(getWifiNetworkRequest(),new ConnectivityManager.NetworkCallback(){
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                super.onAvailable(network);
+                try {
+                    network.bindSocket(socket);
                     System.out.println("绑定wifi到"+network);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -101,8 +124,28 @@ public class AndroidAPITest {
             public void onAvailable(@NonNull Network network) {
                 super.onAvailable(network);
                 try {
-                    System.out.println("2----"+network.toString());
                     network.bindSocket(cellularSocket);
+                    System.out.println("绑定lte到"+network);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            @Override
+            public void onUnavailable() {
+                super.onUnavailable();
+                System.out.println("2-----网络不可达");
+            }
+        });
+    }
+    //绑定到cellular网络的socket
+    public void bindCellularSocket(Socket socket){
+        ConnectivityManager man = getConManager();
+        man.requestNetwork(getCellularNetworkRequest(),new ConnectivityManager.NetworkCallback(){
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                super.onAvailable(network);
+                try {
+                    network.bindSocket(socket);
                     System.out.println("绑定lte到"+network);
                 } catch (IOException e) {
                     e.printStackTrace();

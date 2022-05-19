@@ -3,6 +3,7 @@ package com.neu.splb;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -13,8 +14,17 @@ import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -34,327 +44,124 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String localIP = "172.22.5.16";
 
-    private static final int udpPort = 18885;
+    private static final int splbPort = 18000;
 
-    private static final int tcpPort = 18888;
+    private static final int udpPort = 19000;
+
+    private static final int lteTCPPort = 16000;
+
+    private static final int wifiTCPport = 17000;
+    //Service service=new Service();
+    SocketService service = new SocketService();
+
+    Button buttonStart,buttonEnd,buttonTrx;
+
+    ArrayAdapter<String> adapter1,adapter2,adapter3;
+
+    private String[] document={"document1","document2","a.txt"};
+
+    private String[] trxMode={"LTE单路传输","WIFI单路传输","WIFI+LTE双路聚合"};
+
+    private String[] trxOccasion={"手机->云端 数据传输","手机->手机 数据传输"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initHandler();
+        initSpinner(adapter1,document,R.id.spinner1);
+        initSpinner(adapter2,trxMode,R.id.spinner2);
+        initSpinner(adapter3,trxOccasion,R.id.spinner3);
+        initButton1();
+        initButtonTrx();
+        initButton2();
         context = getApplicationContext();
     }
+    private void initSpinner(ArrayAdapter<String> adapter,String[] data,int id){
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, data);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner spinner = findViewById(id);
+        spinner.setAdapter(adapter);
+    }
 
+    private void initButton1(){
+        buttonStart=findViewById(R.id.button1);
+        buttonStart.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View view) {
+                Spinner spinner1=findViewById(R.id.spinner1);
+                Spinner spinner2=findViewById(R.id.spinner2);
+                Spinner spinner3=findViewById(R.id.spinner3);
+                String filename=spinner1.getSelectedItem().toString();
+                String trxmode=spinner2.getSelectedItem().toString();
+                String trxoccasion=spinner3.getSelectedItem().toString();
+                EditText editText1=findViewById(R.id.editText3);
+                String desIP=editText1.getText().toString();
+                if(desIP==null || "".equals(desIP)){
+                    desIP = localIP;
+                }
+                if("LTE单路传输".equals(trxmode)){
+                    try {
+                        service.testLteTCP(desIP,lteTCPPort);
+                    } catch (SocketException | InterruptedException | UnknownHostException e) {
+                        e.printStackTrace();
+                    }
+                }else if("WIFI单路传输".equals(trxmode)){
+                    try {
+                        service.testWiFiTCP(desIP,wifiTCPport);
+                    } catch (SocketException | InterruptedException | UnknownHostException e) {
+                        e.printStackTrace();
+                    }
+                }else{
+                    try {
+                        service.testSplbMode(desIP,splbPort);
+                    } catch (UnknownHostException | SocketException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
+            }
+        });
+    }
+
+    private void initButtonTrx(){
+        buttonTrx=findViewById(R.id.buttonTrx);
+        buttonTrx.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View view) {
+//                int data=Integer.parseInt(chattxt.getText().toString());
+                int data=(int)(Math.random() * 400);
+//                try {
+//                   // service.connectToServer(data);
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+                TextView textView=findViewById(R.id.debug2);
+                textView.setText(""+data);
+            }
+        });
+    }
+
+    private void initButton2(){
+        buttonEnd=findViewById(R.id.button2);
+        buttonEnd.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this,"关闭连接",Toast.LENGTH_SHORT).show();
+               // service.clientEnd();
+                TextView textView=findViewById(R.id.debug1);
+                textView.setText("Disconnected");
+            }
+        });
+    }
     private void initHandler() {
         handler = new MyHandler(MainActivity.this);
     }
 
-    public void handleClick(View view) {
-        int id = view.getId();
-        switch (id) {
-//            case R.id.open_socket:
-//                openSocket();
-//                break;
-//            case R.id.close_socket:
-//                closeSocket();
-//                break;
-//            case R.id.register:
-//                register();
-//                break;
-//            case R.id.unregister:
-//                unregister();
-//                break;
-//            case R.id.get_available_net_interface:
-//                getAvailableNetInterface();
-//                break;
-//            case R.id.get_mobile_signal_level:
-//                getMobileSignalLevel();
-//                break;
-//            case R.id.get_wifi_signal_level:
-//                getWiFiSignalLevel();
-//                break;
-////            case R.id.bind_to_mobile_interface:
-////                bindToMobileInterface();
-////                break;
-////            case R.id.bind_to_wifi_interface:
-////                bindToWiFiInterface();
-////                break;
-//            case R.id.get_traffic_state:
-//                getTrafficStats();
-//                break;
-//            case R.id.test_website:
-//                testWebSite();
-//                break;
-//            case R.id.test_udp_socket:
-//                testNetwork();
-            case R.id.test_splb_mode1:
-                testSplbMode1();
-                break;
-            case R.id.test_splb_mode2:
-                testSplbMode2();
-                break;
-            case R.id.test_splb_mode3:
-                testSplbMode3();
-                break;
-            case R.id.test_splb_mode4:
-                testSplbMode4();
-                break;
-            case R.id.test_lte_mode:
-                testLteMode();
-                break;
-            case R.id.test_wifi_mode:
-                testWiFiMode();
-                break;
-            case R.id.stop_test_splb_mode1:
-                stopTestSplbMode1();
-                break;
-            case R.id.stop_test_splb_mode2:
-                stopTestSplbMode2();
-                break;
-            case R.id.stop_test_splb_mode3:
-                stopTestSplbMode3();
-                break;
-            case R.id.stop_test_splb_mode4:
-                stopTestSplbMode4();
-                break;
-            case R.id.stop_test_lte_mode:
-                stopTestLteMode();
-                break;
-            case R.id.stop_test_wifi_mode:
-                stopTestWifiMode();
-                break;
-            default:
-                break;
-        }
-    }
-
-//    private void openSocket() {
-//        boolean ret = ApiTest.getInstance().openLocalSocket();
-//        Log.d(TAG, "openSocket ret = " + ret);
-//    }
-//
-//    private void closeSocket() {
-//        boolean ret = ApiTest.getInstance().closeLocalSocket();
-//        Log.d(TAG, "closeSocket ret = " + ret);
-//    }
-//
-//    private void register() {
-//        boolean ret = ApiTest.getInstance().registerApp();
-//        Log.d(TAG, "register ret = " + ret);
-//    }
-//
-//    private void unregister() {
-//        boolean ret = ApiTest.getInstance().unRegisterApp();
-//        Log.d(TAG, "unregister ret = " + ret);
-//    }
-//
-//    private void getAvailableNetInterface() {
-//        boolean ret = ApiTest.getInstance().getAvailableNetInterface();
-//        Log.d(TAG, "getAvailableNetInterface ret = " + ret);
-//    }
-//
-//    private void getMobileSignalLevel() {
-//        boolean ret = ApiTest.getInstance().getSignalLevel(MOBILE_NAME);
-//        Log.d(TAG, "getMobileSignalLevel ret = " + ret);
-//    }
-//
-//    private void getWiFiSignalLevel() {
-//        boolean ret = ApiTest.getInstance().getSignalLevel(WIFI_NAME);
-//        Log.d(TAG, "getWiFiSignalLevel ret " + ret);
-//    }
-
-//    private void bindToMobileInterface() {
-//        boolean ret = ApiTest.getInstance().bindToNetInterface(MOBILE_NAME);
-//        Log.d(TAG, "bindToMobileInterface ret = " + ret);
-//    }
-//
-//    private void bindToWiFiInterface() {
-//        boolean ret = ApiTest.getInstance().bindToNetInterface(WIFI_NAME);
-//        Log.d(TAG, "bindToWiFiInterface ret = " + ret);
-//    }
-
-//    private void bindSocketToMobileInterface(int fd) {
-//        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,MOBILE_NAME);
-//        Log.d(TAG, "bindSocketToMobileInterface ret = " + ret);
-//    }
-//
-//    private void bindSocketToWiFiInterface(int fd) {
-//        boolean ret = ApiTest.getInstance().bindSocketToNetInterface(fd,WIFI_NAME);
-//        Log.d(TAG, "bindSocketToWiFiInterface ret = " + ret);
-//    }
-
-//    private void getTrafficStats() {
-//        int uid = getUid();
-//        if (uid == Integer.MAX_VALUE) {
-//            return;
-//        }
-//        String ret = ApiTest.getInstance().getNetworkSpeed(uid);
-//        TextView text = findViewById(R.id.recv_msg);
-//        text.setText(ret);
-//    }
-
-
-//    private void testBindWithLTE(){
-//        Log.d(TAG, "bindSocketToLTEInterface");
-//        try {
-//            DatagramSocket lteSocket = new SocketService().getUdpSocket();
-//            int fd = new SocketService().getSocketFd(lteSocket);
-//            if(fd != -1){
-//                bindSocketToMobileInterface(fd);
-//            }else{
-//                Log.w(TAG, "socket fd error.it should > 0");
-//            }
-//        }catch (SocketException e){
-//            e.printStackTrace();
-//        }
-//    }
-
-    private void testNetwork(){
-
-    }
-    private void testSplbMode1(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("splb模式1已开始");
-            new SocketService().testSplbMode(yunIP,18882);
-        } catch (SocketException | InterruptedException | UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("splb模式1启动失败");
-        }
-    }
-    private void testSplbMode2(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("splb模式2已开始");
-            new SocketService().testSplbMode(localIP,18880);
-        } catch (SocketException | InterruptedException | UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("splb模式2启动失败");
-        }
-    }
-    private void testSplbMode3(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路TCP性能测试已开始");
-            new SocketService().testWiFiTCP(yunIP,18888);
-        } catch (SocketException | InterruptedException |UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路测试启动失败");
-        }
-    }
-    private void testSplbMode4(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路TCP性能测试已开始");
-            new SocketService().testWiFiTCP(yunIP,18888);
-        } catch (SocketException | InterruptedException |UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路测试启动失败");
-        }
-
-    }
-    private void testLteMode(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路性能测试已开始");
-            new SocketService().testWiFiTCP(yunIP,18888);
-        } catch (SocketException | InterruptedException |UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("LTE链路测试启动失败");
-        }
-    }
-    private void testWiFiMode(){
-        try {
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("WiFi链路性能测试已开始");
-            new SocketService().testWiFiUDP(yunIP,udpPort);
-           // new SocketService().testWiFiPath("47.95.28.241",18882);
-
-        } catch (SocketException | InterruptedException | UnknownHostException e) {
-            e.printStackTrace();
-            TextView textView = findViewById(R.id.recv_msg);
-            textView.setText("WiFi链路测试启动失败");
-        }
-    }
-    private void stopTestSplbMode1(){
-        new SocketService().stopSendPkt();
-        TextView textView = findViewById(R.id.recv_msg);
-        textView.setText("splb模式1已结束");
-    }
-    private void stopTestSplbMode2(){
-        new SocketService().stopSendPkt();
-        TextView textView = findViewById(R.id.recv_msg);
-        textView.setText("splb模式2已结束");
-    }
-    private void stopTestSplbMode3(){
-
-    }
-    private void stopTestSplbMode4(){
-
-    }
-    private void stopTestLteMode(){
-        new SocketService().stopSendPkt();
-        TextView textView = findViewById(R.id.recv_msg);
-        textView.setText("LTE测速已结束");
-    }
-    private void stopTestWifiMode(){
-        new SocketService().stopSendPkt();
-        TextView textView = findViewById(R.id.recv_msg);
-        textView.setText("WiFi测速已结束");
-    }
-    private void testWebSite() {
-        WebView webView = findViewById(R.id.webview);
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                //返回值是true的时候控制网页在WebView中去打开，如果为false则调用系统浏览器打开
-                view.loadUrl(url);
-                return true;
-            }
-        });
-        // 设置js可以直接打开窗口，如window.open()，默认为false
-        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
-        // 是否允许执行js，默认为false。设置true时，会提醒可能造成XSS漏洞struct sockaddr_in* get_aviliable_dst_addrs(struct sockaddr_in *dst_addr)
-        webView.getSettings().setJavaScriptEnabled(true);
-        //是否可以缩放，默认true
-        webView.getSettings().setSupportZoom(true);
-        // 是否显示缩放按钮，默认false
-        webView.getSettings().setBuiltInZoomControls(true);
-        // 设置此属性，可任意比例缩放。大视图模式
-        webView.getSettings().setUseWideViewPort(true);
-        //和setUseWideViewPort(true)一起解决网页自适应问题
-        webView.getSettings().setLoadWithOverviewMode(true);
-        // 是否使用缓存
-        webView.getSettings().setAppCacheEnabled(false);
-        // DOM Storage
-        webView.getSettings().setDomStorageEnabled(true);
-        webView.loadUrl("https://developer.huawei.com/consumer/cn/");
-    }
-
-    private int getUid() {
-        Log.d(TAG, "getUid");
-        ApplicationInfo applicationInfo;
-        try {
-            PackageManager pm = getPackageManager();
-            applicationInfo = pm.getApplicationInfo(PKG_NAME, PackageManager.GET_META_DATA);
-            Log.d(TAG, "uid = " + applicationInfo.uid);
-            return applicationInfo.uid;
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.d(TAG, "getUid failed: " + e.getMessage());
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    private void setReceiveeMessage(String text) {
-        TextView textView = findViewById(R.id.recv_msg);
-        textView.setText(text);
-    }
 
     public static class MyHandler extends Handler {
         private final WeakReference<MainActivity> mActivity;
@@ -375,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "receive--------------------------");
                     if (msg.obj instanceof String) {
                         String text = (String) msg.obj;
-                        activity.setReceiveeMessage(text);
+                   //     activity.setReceiveeMessage(text);
                     }
                     break;
                 default:
