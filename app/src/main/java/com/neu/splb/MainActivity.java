@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
                 EditText editText1=findViewById(R.id.editText3);
                 String desIP=editText1.getText().toString();
                 if(desIP==null || "".equals(desIP)){
-                    desIP = localIP;
+                    desIP = yunIP;
                 }
                 if("LTE单路传输".equals(trxmode)){
                     try {

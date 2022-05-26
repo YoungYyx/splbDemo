@@ -30,7 +30,7 @@ public class SocketService {
         
        // Arrays.fill(data,(byte)1);
         Thread splbThread = new Thread(() -> {
-            File file = new File("/sdcard/Movies/test.mkv");
+            File file = new File("/sdcard/Movies/test.mp4");
             FileInputStream inputStream = null;
             try {
                inputStream = new FileInputStream(file);
@@ -49,7 +49,6 @@ public class SocketService {
                         do{
                             sendSuccess = socket.sendData(data,len);
                         }while (!sendSuccess);
-
                     }else if(len == -1){
                         socket.disConnect();
                     }
@@ -134,7 +133,7 @@ public class SocketService {
     public void testWiFiTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
         System.out.println("start");
         Thread tcpThread = new Thread(() -> {
-            File file = new File("/sdcard/Movies/test.mkv");
+            File file = new File("/sdcard/Movies/test.mp4");
             FileInputStream inputStream = null;
             try {
                 inputStream = new FileInputStream(file);
@@ -188,7 +187,7 @@ public class SocketService {
     public void testLteTCP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
 
         Thread tcpThread = new Thread(() -> {
-            File file = new File("/sdcard/Movies/test.mkv");
+            File file = new File("/sdcard/Movies/test.mp4");
             FileInputStream inputStream = null;
             try {
                 inputStream = new FileInputStream(file);
