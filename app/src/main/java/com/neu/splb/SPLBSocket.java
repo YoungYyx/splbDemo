@@ -646,6 +646,7 @@ class WiFiProbeTask implements Runnable{
                     wifiControlBlock.socket.send(packet);
                     TimeUnit.MICROSECONDS.sleep(wifiControlBlock.probePacingGap);
                     probeHdr.probeSeq++;
+
                 }
             }
         } catch (IOException | InterruptedException e) {
