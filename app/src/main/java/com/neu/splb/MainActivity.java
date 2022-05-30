@@ -46,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int splbPort = 18000;
 
+    private static final int splbWifiPort = 18001;
+
+    private static final int splbLtePort = 18002;
+
     private static final int udpPort = 19000;
 
     private static final int lteTCPPort = 16000;
@@ -96,30 +100,66 @@ public class MainActivity extends AppCompatActivity {
                 String filename=spinner1.getSelectedItem().toString();
                 String trxmode=spinner2.getSelectedItem().toString();
                 String trxoccasion=spinner3.getSelectedItem().toString();
-                EditText editText1=findViewById(R.id.editText3);
+                EditText editText1=findViewById(R.id.editText1);
+                EditText editText2=findViewById(R.id.editText2);
+                EditText editText3=findViewById(R.id.editText3);
                 String desIP=editText1.getText().toString();
+                String desWifiIp = editText2.getText().toString();
+                String desLteIp = editText3.getText().toString();
                 if(desIP==null || "".equals(desIP)){
                     desIP = yunIP;
                 }
-                if("LTE单路传输".equals(trxmode)){
-                    try {
-                        service.testLteTCP(desIP,lteTCPPort);
-                    } catch (SocketException | InterruptedException | UnknownHostException e) {
-                        e.printStackTrace();
-                    }
-                }else if("WIFI单路传输".equals(trxmode)){
-                    try {
-                        service.testWiFiTCP(desIP,wifiTCPport);
-                    } catch (SocketException | InterruptedException | UnknownHostException e) {
-                        e.printStackTrace();
+                if(desIP==null || "".equals(desIP)){
+                    desIP = localIP;
+                }
+                if(desWifiIp==null || "".equals(desWifiIp)){
+                    desWifiIp = localIP;
+                }
+                if(desLteIp==null || "".equals(desLteIp)){
+                    desLteIp = localIP;
+                }
+                if(trxOccasion[0].equals(trxoccasion)){
+                    if(trxMode[0].equals(trxmode)){
+                        try {
+                            service.testLteTCP(desIP,lteTCPPort);
+                        } catch (SocketException | InterruptedException | UnknownHostException e) {
+                            e.printStackTrace();
+                        }
+                    }else if(trxMode[1].equals(trxmode)){
+                        try {
+                            service.testWiFiTCP(desIP,wifiTCPport);
+                        } catch (SocketException | InterruptedException | UnknownHostException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        try {
+                            service.testSplbMode(desIP,splbPort);
+                        } catch (UnknownHostException | SocketException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }else{
-                    try {
-                        service.testSplbMode(desIP,splbPort);
-                    } catch (UnknownHostException | SocketException | InterruptedException e) {
-                        e.printStackTrace();
+                    if(trxMode[0].equals(trxmode)){
+                        try {
+                            service.testLteTCP(desLteIp,lteTCPPort);
+                        } catch (SocketException | InterruptedException | UnknownHostException e) {
+                            e.printStackTrace();
+                        }
+                    }else if(trxMode[1].equals(trxmode)){
+                        try {
+                            service.testWiFiTCP(desWifiIp,wifiTCPport);
+                        } catch (SocketException | InterruptedException | UnknownHostException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        try {
+                            service.testSplbMode(desLteIp,splbLtePort,desWifiIp,splbWifiPort);
+                        } catch (UnknownHostException | SocketException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+
 
 
             }
@@ -155,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
                // service.clientEnd();
                 TextView textView=findViewById(R.id.debug1);
                 textView.setText("Disconnected");
+                service.stopSendPkt();
             }
         });
     }

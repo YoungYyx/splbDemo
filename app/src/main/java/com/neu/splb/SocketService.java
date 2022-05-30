@@ -58,9 +58,50 @@ public class SocketService {
                 }
 
             }
+            socket.disConnect();
         });
         splbThread.start();
     }
+
+    public void testSplbMode(String lteIP,int lteDstPort, String wifiIP, int wifiDesport) throws UnknownHostException, SocketException, InterruptedException {
+        SPLBSocket socket = new SPLBSocket();
+        socket.connect(lteIP,lteDstPort,wifiIP,wifiDesport);
+
+        // Arrays.fill(data,(byte)1);
+        Thread splbThread = new Thread(() -> {
+            File file = new File("/sdcard/Movies/test.mp4");
+            FileInputStream inputStream = null;
+            try {
+                inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] data = new byte[512];
+            int counter = 0;
+            while (!endSign){
+                try {
+                    int len = inputStream.read(data);
+                    if(len > 0){
+                        counter++;
+                        //   System.out.println(counter + "," + data[0] + ":"+ data[len-1]);
+                        boolean sendSuccess = false;
+                        do{
+                            sendSuccess = socket.sendData(data,len);
+                        }while (!sendSuccess);
+
+                    }else if(len == -1){
+                        socket.disConnect();
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+        splbThread.start();
+    }
+
 
     public void stopSendPkt(){
         endSign = true;

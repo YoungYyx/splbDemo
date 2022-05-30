@@ -70,7 +70,7 @@
             android:layout_height="40dp"
             tools:layout_editor_absoluteY="236dp"
             tools:layout_editor_absoluteX="153dp"
-            android:id="@+id/editText3"
+            android:id="@+id/editText1"
             android:hint="TCP"/>
     </LinearLayout>
 
@@ -93,14 +93,14 @@
                 android:layout_height="40dp"
                 tools:layout_editor_absoluteY="315dp"
                 tools:layout_editor_absoluteX="153dp"
-                android:id="@+id/editText"
+                android:id="@+id/editText2"
                 android:hint="WIFI"/>
             <EditText
                 android:layout_width="200dp"
                 android:layout_height="40dp"
                 tools:layout_editor_absoluteY="387dp"
                 tools:layout_editor_absoluteX="153dp"
-                android:id="@+id/editText2"
+                android:id="@+id/editText3"
                 android:hint="LTE(IPv4/IPv6)"/>
         </LinearLayout>
 

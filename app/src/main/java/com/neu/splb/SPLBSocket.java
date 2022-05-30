@@ -5,6 +5,7 @@ import static java.lang.Thread.sleep;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -1041,6 +1042,36 @@ public class SPLBSocket {
             this.databuffer = new DataBuffer();
             lteControlBlock = new SockControlBlock(lteSocket,address,dstPort,databuffer);
             wifiControlBlock = new SockControlBlock(wifiSocket,address,dstPort+1,databuffer);
+            lteControlBlock.initLTESockControlBlock();
+            wifiControlBlock.initWifiSockControlBlock();
+            lteControlBlock.spSock = this;
+            wifiControlBlock.spSock = this;
+            lteControlBlock.probeExecutor.execute(new LTEProbeTask(lteControlBlock));
+            lteControlBlock.recvExecutor.execute(new LTERecvTask(lteControlBlock));
+            lteControlBlock.ptoExecutor.execute(new LTEPTOTask(lteControlBlock));
+            wifiControlBlock.probeExecutor.execute(new WiFiProbeTask(wifiControlBlock));
+            wifiControlBlock.recvExecutor.execute(new WiFiRecvTask(wifiControlBlock));
+            wifiControlBlock.ptoExecutor.execute(new WiFiPTOTask(wifiControlBlock));
+
+
+        }catch (SocketException | InterruptedException | UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void connect(String lteIP,int lteDstPort, String wifiIP, int wifiDesport){
+        try{
+            AndroidAPITest apiInstance = AndroidAPITest.getInstance();
+            final DatagramSocket lteSocket = this.getUdpSocket();
+            final DatagramSocket wifiSocket = this.getUdpSocket();
+            apiInstance.bindCellularSocket(lteSocket);
+            apiInstance.bindWifiSocket(wifiSocket);
+            sleep(3000);
+            Inet6Address lteAdress = (Inet6Address) Inet6Address.getByName(lteIP);
+            InetAddress wifiAddress = InetAddress.getByName(wifiIP);
+            this.databuffer = new DataBuffer();
+            lteControlBlock = new SockControlBlock(lteSocket,lteAdress,lteDstPort,databuffer);
+            wifiControlBlock = new SockControlBlock(wifiSocket,wifiAddress,wifiDesport,databuffer);
             lteControlBlock.initLTESockControlBlock();
             wifiControlBlock.initWifiSockControlBlock();
             lteControlBlock.spSock = this;
