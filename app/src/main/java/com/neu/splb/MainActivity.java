@@ -174,6 +174,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 EditText editText1=findViewById(R.id.editText1);
                 String desIP=editText1.getText().toString();
+                if(desIP==null || "".equals(desIP)){
+                    desIP = yunIP;
+                }
                 try {
                     service.testWiFiUDP(desIP,udpPort);
                 } catch (SocketException e) {
