@@ -172,15 +172,17 @@ public class MainActivity extends AppCompatActivity {
             @SuppressLint("SetTextI18n")
             @Override
             public void onClick(View view) {
-//                int data=Integer.parseInt(chattxt.getText().toString());
-                int data=(int)(Math.random() * 400);
-//                try {
-//                   // service.connectToServer(data);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-                TextView textView=findViewById(R.id.debug2);
-                textView.setText(""+data);
+                EditText editText1=findViewById(R.id.editText1);
+                String desIP=editText1.getText().toString();
+                try {
+                    service.testWiFiUDP(desIP,udpPort);
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }

@@ -113,21 +113,28 @@ public class SocketService {
     public void testWiFiUDP(String IP, int dstPort) throws SocketException, InterruptedException, UnknownHostException {
         final InetAddress address = InetAddress.getByName(IP);
         final DatagramSocket wifiSocket = new DatagramSocket(30000);
-
         AndroidAPITest apiInstance = AndroidAPITest.getInstance();
         apiInstance.bindWifiSocket(wifiSocket);
         sleep(3000);
-
         Thread udpThread1 = new Thread(() -> {
             System.out.println("running wifi");
-            SplbHdr probeHdr = new SplbHdr(PacketType.DATAPKG,(byte)1,0,0,1);
-            byte[] realData = new byte[512];
-            Arrays.fill(realData, (byte) 1);
+            File file = new File("/sdcard/Movies/test.mp4");
+            FileInputStream inputStream = null;
             try {
-                while(!Thread.currentThread().isInterrupted()){
-                    byte[] sendData =  DataUtils.byteMerger(probeHdr.toByteArray(),realData);
-                    DatagramPacket packet = new DatagramPacket(sendData,sendData.length,address,dstPort);
-                    wifiSocket.send(packet);
+                inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            byte[] data = new byte[512];
+            try {
+                while(!endSign){
+                    int len = inputStream.read(data);
+                    if(len > 0){
+                        DatagramPacket packet = new DatagramPacket(data,data.length,address,dstPort);
+                        wifiSocket.send(packet);
+                    }else if(len == -1){
+
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();

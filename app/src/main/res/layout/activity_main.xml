@@ -121,7 +121,7 @@
             android:layout_height="wrap_content" android:id="@+id/button1" tools:layout_editor_absoluteY="550dp"
             android:layout_marginLeft="35dp"/>
         <Button
-            android:text="单次传输"
+            android:text="UDP测试"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/buttonTrx" tools:layout_editor_absoluteY="550dp"
